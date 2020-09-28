@@ -11,7 +11,6 @@ import org.javacord.api.event.user.UserChangeAvatarEvent;
 import org.javacord.api.event.user.UserChangeDiscriminatorEvent;
 import org.javacord.api.event.user.UserChangeNameEvent;
 import org.javacord.api.event.user.UserChangeStatusEvent;
-import org.javacord.core.entity.activity.ActivityImpl;
 import org.javacord.core.entity.user.UserImpl;
 import org.javacord.core.event.user.UserChangeActivityEventImpl;
 import org.javacord.core.event.user.UserChangeAvatarEventImpl;
@@ -21,9 +20,7 @@ import org.javacord.core.event.user.UserChangeStatusEventImpl;
 import org.javacord.core.util.gateway.PacketHandler;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Handles the presence update packet.
@@ -44,8 +41,11 @@ public class PresenceUpdateHandler extends PacketHandler {
         // ignore the guild_id and send to all mutual servers instead or we must track the properties per server
         // or all packets after the first do not detect a change and will not send around an event for the server
         long userId = packet.get("user").get("id").asLong();
+        if (!(packet.get("user").has("username") || packet.get("user").has("discriminator"))) {
+            return;
+        }
         api.getCachedUserById(userId).map(UserImpl.class::cast).ifPresent(user -> {
-            if (packet.has("game")) {
+            /* if (packet.has("game")) {
                 Activity newActivity = null;
                 if (!packet.get("game").isNull()) {
                     newActivity = new ActivityImpl(api, packet.get("game"));
@@ -79,6 +79,7 @@ public class PresenceUpdateHandler extends PacketHandler {
             }
 
             dispatchUserStatusChangeEventIfChangeDetected(user, newStatus, oldStatus, newClientStatus, oldClientStatus);
+            */
 
             if (packet.get("user").has("username")) {
                 String newName = packet.get("user").get("username").asText();
@@ -96,6 +97,7 @@ public class PresenceUpdateHandler extends PacketHandler {
                     dispatchUserChangeDiscriminatorEvent(user, newDiscriminator, oldDiscriminator);
                 }
             }
+            /*
             if (packet.get("user").has("avatar")) {
                 String newAvatarHash = packet.get("user").get("avatar").asText(null);
                 String oldAvatarHash = user.getAvatarHash();
@@ -103,7 +105,7 @@ public class PresenceUpdateHandler extends PacketHandler {
                     user.setAvatarHash(newAvatarHash);
                     dispatchUserChangeAvatarEvent(user, newAvatarHash, oldAvatarHash);
                 }
-            }
+            } */
         });
     }
 

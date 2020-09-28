@@ -52,6 +52,11 @@ public class DiscordApiBuilderDelegateImpl implements DiscordApiBuilderDelegate 
     private volatile Ratelimiter globalRatelimiter;
 
     /**
+     * A ratelimiter used to respect the 5 seconds gateway identify ratelimit.
+     */
+    private volatile Ratelimiter gatewayIdentifyRatelimiter;
+
+    /**
      * The proxy selector which should be used to determine the proxies that should be used to connect to the Discord
      * REST API and websocket.
      */
@@ -170,9 +175,10 @@ public class DiscordApiBuilderDelegateImpl implements DiscordApiBuilderDelegate 
         }
         try (CloseableThreadContext.Instance closeableThreadContextInstance =
                      CloseableThreadContext.put("shard", Integer.toString(currentShard.get()))) {
-            new DiscordApiImpl(accountType, token, currentShard.get(), totalShards.get(), waitForServersOnStartup,
-                    registerShutdownHook, globalRatelimiter, proxySelector, proxy, proxyAuthenticator,
-                    trustAllCertificates, future, null, preparedListeners, preparedUnspecifiedListeners);
+            new DiscordApiImpl(accountType, token, currentShard.get(), totalShards.get(),
+                    waitForServersOnStartup, registerShutdownHook, globalRatelimiter, gatewayIdentifyRatelimiter,
+                    proxySelector, proxy, proxyAuthenticator, trustAllCertificates, future, null,
+                    preparedListeners, preparedUnspecifiedListeners);
         }
         return future;
     }
@@ -253,6 +259,11 @@ public class DiscordApiBuilderDelegateImpl implements DiscordApiBuilderDelegate 
     @Override
     public void setGlobalRatelimiter(Ratelimiter ratelimiter) {
         globalRatelimiter = ratelimiter;
+    }
+
+    @Override
+    public void setGatewayIdentifyRatelimiter(Ratelimiter ratelimiter) {
+        gatewayIdentifyRatelimiter = ratelimiter;
     }
 
     @Override
@@ -363,7 +374,8 @@ public class DiscordApiBuilderDelegateImpl implements DiscordApiBuilderDelegate 
 
     private void setRecommendedTotalShards(CompletableFuture<Void> future) {
         DiscordApiImpl api = new DiscordApiImpl(
-                token, globalRatelimiter, proxySelector, proxy, proxyAuthenticator, trustAllCertificates);
+                token, globalRatelimiter, gatewayIdentifyRatelimiter, proxySelector, proxy, proxyAuthenticator,
+                trustAllCertificates);
         RestRequest<JsonNode> botGatewayRequest = new RestRequest<>(api, RestMethod.GET, RestEndpoint.GATEWAY_BOT);
         botGatewayRequest
                 .execute(RestRequestResult::getJsonBody)

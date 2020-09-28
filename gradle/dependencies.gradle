@@ -22,8 +22,8 @@ project(':javacord-api') {
 project(':javacord-core') {
     dependencies {
         // OkHttp for REST-calls
-        implementation 'com.squareup.okhttp3:okhttp:3.9.1'
-        implementation 'com.squareup.okhttp3:logging-interceptor:3.9.1'
+        implementation 'com.squareup.okhttp3:okhttp:3.14.1'
+        implementation 'com.squareup.okhttp3:logging-interceptor:3.14.1'
 
         // the JSON-lib because Discord returns in JSON format
         implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.3'

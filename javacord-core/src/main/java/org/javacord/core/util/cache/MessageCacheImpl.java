@@ -100,7 +100,7 @@ public class MessageCacheImpl implements MessageCache, Cleanupable {
                     removedMessages++;
                 }
                 if (removedMessages > 0) {
-                    logger.warn("Heap memory was too low to hold all configured messages in the cache. "
+                    logger.debug("!Heap memory was too low to hold all configured messages in the cache. "
                                 + "Removed {} messages from the cache due to memory shortage. "
                                 + "Either increase your heap settings or decrease your message cache settings!",
                                 removedMessages);

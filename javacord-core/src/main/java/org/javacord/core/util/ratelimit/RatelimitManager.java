@@ -183,12 +183,13 @@ public class RatelimitManager {
         // Check if we received a 429 response
         if (result.getResponse().code() == 429) {
             int retryAfter =
-                    result.getJsonBody().isNull() ? 0 : result.getJsonBody().get("retry_after").asInt();
+                    result.getJsonBody().isNull() ? 0 :
+                            (result.getJsonBody().get("retry_after").isNull() || result.getJsonBody().get("retry_after")
+                                    .isMissingNode() ? 0 : result.getJsonBody().get("retry_after").asInt());
 
             if (global) {
                 // We hit a global ratelimit. Time to panic!
-                logger.warn("Hit a global ratelimit! This means you were sending a very large "
-                        + "amount within a very short time frame.");
+                logger.warn("Hit a global ratelimit! Retry after is " + retryAfter);
                 RatelimitBucket.setGlobalRatelimitResetTimestamp(api, responseTimestamp + retryAfter);
             } else {
                 logger.debug("Received a 429 response from Discord! Recalculating time offset...");
@@ -206,7 +207,7 @@ public class RatelimitManager {
                 requestResult.complete(result);
             }
 
-            // Update bucket information
+            // Update bucket informations
             bucket.setRatelimitRemaining(remaining);
             bucket.setRatelimitResetTimestamp(reset);
         }
