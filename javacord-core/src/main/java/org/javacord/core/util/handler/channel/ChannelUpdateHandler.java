@@ -78,6 +78,7 @@ public class ChannelUpdateHandler extends PacketHandler {
                 handlePrivateChannel(packet);
                 break;
             case SERVER_VOICE_CHANNEL:
+            case SERVER_STAGE_VOICE_CHANNEL:
                 handleServerChannel(packet);
                 handleServerVoiceChannel(packet);
                 break;

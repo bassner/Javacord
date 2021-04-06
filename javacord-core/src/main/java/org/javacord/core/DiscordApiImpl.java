@@ -1762,7 +1762,8 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
 
     @Override
     public Collection<ServerVoiceChannel> getServerVoiceChannels() {
-        return entityCache.get().getChannelCache().getChannelsWithTypes(ChannelType.SERVER_VOICE_CHANNEL);
+        return entityCache.get().getChannelCache()
+                .getChannelsWithTypes(ChannelType.SERVER_VOICE_CHANNEL, ChannelType.SERVER_STAGE_VOICE_CHANNEL);
     }
 
     @Override

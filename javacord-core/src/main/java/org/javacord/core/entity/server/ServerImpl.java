@@ -342,6 +342,7 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
                         getOrCreateServerTextChannel(channel);
                         break;
                     case SERVER_VOICE_CHANNEL:
+                    case SERVER_STAGE_VOICE_CHANNEL:
                         getOrCreateServerVoiceChannel(channel);
                         break;
                     case CHANNEL_CATEGORY:
@@ -715,7 +716,7 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
         long id = Long.parseLong(data.get("id").asText());
         ChannelType type = ChannelType.fromId(data.get("type").asInt());
         synchronized (this) {
-            if (type == ChannelType.SERVER_VOICE_CHANNEL) {
+            if (type == ChannelType.SERVER_VOICE_CHANNEL || type == ChannelType.SERVER_STAGE_VOICE_CHANNEL) {
                 return getVoiceChannelById(id).orElseGet(() -> new ServerVoiceChannelImpl(api, this, data));
             }
         }
