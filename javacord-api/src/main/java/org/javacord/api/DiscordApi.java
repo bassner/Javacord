@@ -53,6 +53,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1854,5 +1855,19 @@ public interface DiscordApi extends GloballyAttachableListenerManager {
                         })
                         .collect(Collectors.toList()));
     }
+
+    /**
+     * Sets the DM interaction listener. Useful to expose DM interactions to forward them elsewhere.
+     *
+     * @param listener A listener that will receive the raw interaction payload as string for forwarding.
+     */
+    void setDMInteractionListener(Consumer<String> listener);
+
+    /**
+     * Accepts interaction payloads from DMs received in shard 0 so they are available in other shards.
+     *
+     * @param payload
+     */
+    void injectDMInteractionPayload(String payload);
 
 }

@@ -22,6 +22,7 @@ import org.javacord.api.entity.user.User;
 import org.javacord.api.event.connection.LostConnectionEvent;
 import org.javacord.api.event.connection.ReconnectEvent;
 import org.javacord.api.event.connection.ResumeEvent;
+import org.javacord.api.interaction.Interaction;
 import org.javacord.api.util.auth.Authenticator;
 import org.javacord.api.util.auth.Request;
 import org.javacord.core.DiscordApiImpl;
@@ -1052,5 +1053,9 @@ public class DiscordWebSocketAdapter extends WebSocketAdapter {
     @Override
     public void onConnectError(WebSocket websocket, WebSocketException exception) {
         logger.warn("Websocket onConnect error!", exception);
+    }
+
+    public InteractionCreateHandler getInteractionHandler() {
+        return (InteractionCreateHandler) handlers.get("INTERACTION_CREATE");
     }
 }

@@ -1,5 +1,6 @@
 package org.javacord.core;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -87,6 +88,7 @@ import org.javacord.core.util.rest.RestEndpoint;
 import org.javacord.core.util.rest.RestMethod;
 import org.javacord.core.util.rest.RestRequest;
 
+import java.io.IOException;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
@@ -1917,6 +1919,27 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     @Override
     public Optional<Channel> getChannelById(long id) {
         return entityCache.get().getChannelCache().getChannelById(id);
+    }
+
+    @Override
+    public void setDMInteractionListener(Consumer<String> listener) {
+        websocketAdapter.getInteractionHandler()
+                .setDmListener(node -> {
+                    try {
+                        listener.accept(objectMapper.writeValueAsString(node));
+                    } catch (JsonProcessingException e) {
+                        logger.error("Unable to serialize DM interaction", e);
+                    }
+                });
+    }
+
+    @Override
+    public void injectDMInteractionPayload(String payload) {
+        try {
+            websocketAdapter.getInteractionHandler().handle(objectMapper.readTree(payload), true);
+        } catch (IOException e) {
+            logger.error("Unable to deserialize DM interaction", e);
+        }
     }
 
     @Override
