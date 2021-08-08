@@ -53,33 +53,29 @@ public class InteractionCreateHandler extends PacketHandler {
     public void handle(JsonNode packet) {
         handle(packet, false);
     }
-        TextChannel channel = null;
-        if (packet.hasNonNull("channel_id")) {
-            long channelId = packet.get("channel_id").asLong();
-
-            // Check if this interaction comes from a guild or a DM
-            if (packet.hasNonNull("guild_id")) {
-                channel = api.getTextChannelById(channelId).orElse(null);
-            } else {
-                UserImpl user = new UserImpl(api, packet.get("user"), (MemberImpl) null, null);
-                channel = PrivateChannelImpl.getOrCreatePrivateChannel(api, channelId, user.getId(), user);
-            }
-        }
 
     public void handle(JsonNode packet, boolean injected) {
         try {
             lock.lock();
+
+            TextChannel channel = null;
+            if (packet.hasNonNull("channel_id")) {
+                long channelId = packet.get("channel_id").asLong();
+
+                // Check if this interaction comes from a guild or a DM
+                if (packet.hasNonNull("guild_id")) {
+                    channel = api.getTextChannelById(channelId).orElse(null);
+                } else {
+                    UserImpl user = new UserImpl(api, packet.get("user"), (MemberImpl) null, null);
+                    channel = PrivateChannelImpl.getOrCreatePrivateChannel(api, channelId, user.getId(), user);
+                }
+            }
 
             // If it has user, it's from a DM. Time to relay it!
             if (!injected && packet.hasNonNull("user")) {
                 dmListener.accept(packet);
                 // We return. It will be reinjected, and for testing purposes on a single shard
                 return;
-            }
-
-            TextChannel channel = null;
-            if (packet.hasNonNull("channel_id")) {
-                channel = api.getTextChannelById(packet.get("channel_id").asLong()).orElse(null);
             }
 
             int typeId = packet.get("type").asInt();
