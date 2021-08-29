@@ -1923,7 +1923,7 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public void setDMInteractionListener(Consumer<String> listener) {
+    public void setDirectMessageInteractionListener(Consumer<String> listener) {
         websocketAdapter.getInteractionHandler()
                 .setDmListener(node -> {
                     try {
@@ -1935,7 +1935,7 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public void injectDMInteractionPayload(String payload) {
+    public void injectDirectMessageInteractionPayload(String payload) {
         try {
             websocketAdapter.getInteractionHandler().handle(objectMapper.readTree(payload), true);
         } catch (IOException e) {

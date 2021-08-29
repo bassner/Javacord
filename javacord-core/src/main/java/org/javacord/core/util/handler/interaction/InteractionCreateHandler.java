@@ -54,6 +54,12 @@ public class InteractionCreateHandler extends PacketHandler {
         handle(packet, false);
     }
 
+    /**
+     * Internal handle method.
+     *
+     * @param packet the packet
+     * @param injected wether injected or not
+     */
     public void handle(JsonNode packet, boolean injected) {
         try {
             lock.lock();
@@ -181,6 +187,11 @@ public class InteractionCreateHandler extends PacketHandler {
         }
     }
 
+    /**
+     * Sets the dm listener.
+     *
+     * @param dmListener the dm listener to set
+     */
     public void setDmListener(Consumer<JsonNode> dmListener) {
         this.dmListener = dmListener;
     }

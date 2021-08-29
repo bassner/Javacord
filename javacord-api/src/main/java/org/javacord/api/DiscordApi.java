@@ -1875,13 +1875,13 @@ public interface DiscordApi extends GloballyAttachableListenerManager {
      *
      * @param listener A listener that will receive the raw interaction payload as string for forwarding.
      */
-    void setDMInteractionListener(Consumer<String> listener);
+    void setDirectMessageInteractionListener(Consumer<String> listener);
 
     /**
      * Accepts interaction payloads from DMs received in shard 0 so they are available in other shards.
      *
-     * @param payload
+     * @param payload the payload to inject
      */
-    void injectDMInteractionPayload(String payload);
+    void injectDirectMessageInteractionPayload(String payload);
 
 }
