@@ -1,19 +1,27 @@
 package org.javacord.core.util.handler.guild;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.logging.log4j.Logger;
 import org.javacord.api.DiscordApi;
 import org.javacord.api.entity.server.Server;
 import org.javacord.api.event.server.ServerBecomesUnavailableEvent;
 import org.javacord.api.event.server.ServerLeaveEvent;
+import org.javacord.core.DiscordApiImpl;
 import org.javacord.core.event.server.ServerBecomesUnavailableEventImpl;
 import org.javacord.core.event.server.ServerLeaveEventImpl;
 import org.javacord.core.util.event.DispatchQueueSelector;
 import org.javacord.core.util.gateway.PacketHandler;
+import org.javacord.core.util.logging.LoggerUtil;
 
 /**
  * Handles the guild delete packet.
  */
 public class GuildDeleteHandler extends PacketHandler {
+
+    /**
+     * The logger of this class.
+     */
+    private static final Logger logger = LoggerUtil.getLogger(DiscordApiImpl.class);
 
     /**
      * Creates a new instance of this class.
@@ -28,6 +36,7 @@ public class GuildDeleteHandler extends PacketHandler {
     public void handle(JsonNode packet) {
         long serverId = packet.get("id").asLong();
         if (packet.has("unavailable") && packet.get("unavailable").asBoolean()) {
+            logger.warn("Server " + packet.get("id").asLong() + " became unavailable.");
             api.addUnavailableServerToCache(serverId);
             api.getPossiblyUnreadyServerById(serverId).ifPresent(server -> {
                 ServerBecomesUnavailableEvent event = new ServerBecomesUnavailableEventImpl(server);
