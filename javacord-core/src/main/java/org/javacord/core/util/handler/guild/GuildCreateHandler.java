@@ -34,7 +34,8 @@ public class GuildCreateHandler extends PacketHandler {
     @Override
     public void handle(JsonNode packet) {
         if (packet.has("unavailable") && packet.get("unavailable").asBoolean()) {
-            logger.warn("Received a GUILD_CREATE packet for server " + packet.get("id").asLong() + " where 'unavailable' is true.");
+            logger.warn("Received a GUILD_CREATE packet for server " + packet.get("id").asLong()
+                    + " where 'unavailable' is true.");
             return;
         }
         long id = packet.get("id").asLong();
