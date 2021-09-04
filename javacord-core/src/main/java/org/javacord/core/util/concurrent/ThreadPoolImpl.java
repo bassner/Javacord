@@ -19,7 +19,7 @@ public class ThreadPoolImpl implements ThreadPool {
 
     private static final int CORE_POOL_SIZE = 1;
     private static final int MAXIMUM_POOL_SIZE = Integer.MAX_VALUE;
-    private static final int KEEP_ALIVE_TIME = 60;
+    private static final int KEEP_ALIVE_TIME = 120;
     private static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
 
     private final ExecutorService executorService = new ThreadPoolExecutor(

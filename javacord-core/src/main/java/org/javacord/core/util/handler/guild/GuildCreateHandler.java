@@ -40,6 +40,7 @@ public class GuildCreateHandler extends PacketHandler {
         }
         long id = packet.get("id").asLong();
         if (api.getUnavailableServers().contains(id)) {
+            // logger.info("Shard " + api.getCurrentShard() + ": Server " + id + " became available again.");
             ServerImpl server = new ServerImpl(api, packet);
             ServerBecomesAvailableEvent event = new ServerBecomesAvailableEventImpl(server);
 

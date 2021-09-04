@@ -13,6 +13,8 @@ import org.javacord.core.util.event.DispatchQueueSelector;
 import org.javacord.core.util.gateway.PacketHandler;
 import org.javacord.core.util.logging.LoggerUtil;
 
+import java.util.Optional;
+
 /**
  * Handles the guild delete packet.
  */
@@ -36,9 +38,11 @@ public class GuildDeleteHandler extends PacketHandler {
     public void handle(JsonNode packet) {
         long serverId = packet.get("id").asLong();
         if (packet.has("unavailable") && packet.get("unavailable").asBoolean()) {
-            logger.warn("Server " + packet.get("id").asLong() + " became unavailable.");
             api.addUnavailableServerToCache(serverId);
-            api.getPossiblyUnreadyServerById(serverId).ifPresent(server -> {
+            Optional<Server> serverOpt = api.getPossiblyUnreadyServerById(serverId);
+            serverOpt.ifPresent(server -> {
+                logger.warn("Shard " + api.getCurrentShard() + ": Server " + packet.get("id").asLong()
+                        + " became unavailable (dispatching event).");
                 ServerBecomesUnavailableEvent event = new ServerBecomesUnavailableEventImpl(server);
 
                 api.getEventDispatcher().dispatchServerBecomesUnavailableEvent(
@@ -48,6 +52,10 @@ public class GuildDeleteHandler extends PacketHandler {
                         msg -> api.removeMessageFromCache(msg.getId())
                 );
             });
+            if (!serverOpt.isPresent()) {
+                logger.warn("Shard " + api.getCurrentShard() + ": Server " + packet.get("id").asLong()
+                        + " became unavailable. Not found in cache, no event.");
+            }
             api.removeServerFromCache(serverId);
             return;
         }
