@@ -151,7 +151,7 @@ public interface User extends DiscordEntity, Messageable, Nameable, Mentionable,
      *
      * <p>This will return {@link UserStatus#OFFLINE} for invisible users.
      *
-     * @return The status of the the user.
+     * @return The status of the user.
      * @see #getStatusOnClient(DiscordClient)
      */
     default UserStatus getDesktopStatus() {
@@ -163,7 +163,7 @@ public interface User extends DiscordEntity, Messageable, Nameable, Mentionable,
      *
      * <p>This will return {@link UserStatus#OFFLINE} for invisible users.
      *
-     * @return The status of the the user.
+     * @return The status of the user.
      * @see #getStatusOnClient(DiscordClient)
      */
     default UserStatus getMobileStatus() {
@@ -175,7 +175,7 @@ public interface User extends DiscordEntity, Messageable, Nameable, Mentionable,
      *
      * <p>This will return {@link UserStatus#OFFLINE} for invisible users.
      *
-     * @return The status of the the user.
+     * @return The status of the user.
      * @see #getStatusOnClient(DiscordClient)
      */
     default UserStatus getWebStatus() {
@@ -202,6 +202,13 @@ public interface User extends DiscordEntity, Messageable, Nameable, Mentionable,
      * @return The public flags for this account.
      */
     EnumSet<UserFlag> getUserFlags();
+
+    /**
+     * Gets the avatar hash of the user.
+     *
+     * @return The avatar hash.
+     */
+    Optional<String> getAvatarHash();
 
     /**
      * Gets the avatar of the user.
@@ -234,7 +241,7 @@ public interface User extends DiscordEntity, Messageable, Nameable, Mentionable,
     String getDisplayName(Server server);
 
     /**
-     * Gets the discriminated name of the user, e. g. {@code Bastian#8222}.
+     * Gets the discriminated name of the user, e.g. {@code Bastian#8222}.
      *
      * @return The discriminated name of the user.
      */
@@ -347,7 +354,7 @@ public interface User extends DiscordEntity, Messageable, Nameable, Mentionable,
     /**
      * Mutes this user on the given server.
      *
-     * @param server The server to umute this user on.
+     * @param server The server to mute this user on.
      * @return A future to check if the mute was successful.
      */
     default CompletableFuture<Void> mute(Server server) {
@@ -357,7 +364,7 @@ public interface User extends DiscordEntity, Messageable, Nameable, Mentionable,
     /**
      * Mutes this user on the given server.
      *
-     * @param server The server to umute this user on.
+     * @param server The server to mute this user on.
      * @param reason The audit log reason for this action.
      * @return A future to check if the mute was successful.
      */
@@ -368,7 +375,7 @@ public interface User extends DiscordEntity, Messageable, Nameable, Mentionable,
     /**
      * Unmutes this user on the given server.
      *
-     * @param server The server to unumute this user on.
+     * @param server The server to unmute this user on.
      * @return A future to check if the unmute was successful.
      */
     default CompletableFuture<Void> unmute(Server server) {
@@ -378,7 +385,7 @@ public interface User extends DiscordEntity, Messageable, Nameable, Mentionable,
     /**
      * Unmutes this user on the given server.
      *
-     * @param server The server to unumute this user on.
+     * @param server The server to unmute this user on.
      * @param reason The audit log reason for this action.
      * @return A future to check if the unmute was successful.
      */
@@ -486,7 +493,7 @@ public interface User extends DiscordEntity, Messageable, Nameable, Mentionable,
 
     /**
      * Gets the private channel with the user.
-     * This will only be present, if there was an conversation with the user in the past or you manually opened a
+     * This will only be present, if there was a conversation with the user in the past, or you manually opened a
      * private channel with the given user, using {@link #openPrivateChannel()}.
      *
      * @return The private channel with the user.
