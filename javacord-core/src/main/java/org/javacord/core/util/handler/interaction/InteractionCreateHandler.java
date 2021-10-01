@@ -57,12 +57,19 @@ public class InteractionCreateHandler extends PacketHandler {
     /**
      * Internal handle method.
      *
-     * @param packet the packet
+     * @param packet   the packet
      * @param injected wether injected or not
      */
     public void handle(JsonNode packet, boolean injected) {
         try {
             lock.lock();
+
+            // If it has user, it's from a DM. Time to relay it!
+            if (!injected && packet.hasNonNull("user")) {
+                dmListener.accept(packet);
+                // We return. It will be reinjected, and for testing purposes on a single shard
+                return;
+            }
 
             TextChannel channel = null;
             if (packet.hasNonNull("channel_id")) {
@@ -75,13 +82,6 @@ public class InteractionCreateHandler extends PacketHandler {
                     UserImpl user = new UserImpl(api, packet.get("user"), (MemberImpl) null, null);
                     channel = PrivateChannelImpl.getOrCreatePrivateChannel(api, channelId, user.getId(), user);
                 }
-            }
-
-            // If it has user, it's from a DM. Time to relay it!
-            if (!injected && packet.hasNonNull("user")) {
-                dmListener.accept(packet);
-                // We return. It will be reinjected, and for testing purposes on a single shard
-                return;
             }
 
             int typeId = packet.get("type").asInt();
@@ -121,67 +121,70 @@ public class InteractionCreateHandler extends PacketHandler {
             InteractionCreateEvent event = new InteractionCreateEventImpl(interaction);
 
 
-        ServerImpl server = (ServerImpl) interaction.getServer().orElse(null);
+            ServerImpl server = (ServerImpl) interaction.getServer().orElse(null);
 
-        api.getEventDispatcher().dispatchInteractionCreateEvent(
-                server == null ? api : server,
-                server,
-                interaction.getChannel().orElse(null),
-                interaction.getUser(),
-                event
-        );
+            api.getEventDispatcher().dispatchInteractionCreateEvent(
+                    server == null ? api : server,
+                    server,
+                    interaction.getChannel().orElse(null),
+                    interaction.getUser(),
+                    event
+            );
 
-        switch (interactionType) {
-            case SLASH_COMMAND:
-                SlashCommandCreateEvent slashCommandCreateEvent =
-                        new SlashCommandCreateEventImpl(interaction);
-                api.getEventDispatcher().dispatchSlashCommandCreateEvent(
-                        server == null ? api : server,
-                        server,
-                        interaction.getChannel().orElse(null),
-                        interaction.getUser(),
-                        slashCommandCreateEvent
-                );
-                break;
-            case MESSAGE_COMPONENT:
-                MessageComponentCreateEvent messageComponentCreateEvent =
-                        new MessageComponentCreateEventImpl(interaction);
-                long messageId = messageComponentCreateEvent.getMessageComponentInteraction().getMessage().getId();
-                api.getEventDispatcher().dispatchMessageComponentCreateEvent(
-                        server == null ? api : server,
-                        messageId,
-                        server,
-                        interaction.getChannel().orElse(null),
-                        interaction.getUser(),
-                        messageComponentCreateEvent);
-                switch (componentType) {
-                    case BUTTON:
-                        ButtonClickEvent buttonClickEvent = new ButtonClickEventImpl(interaction);
-                        api.getEventDispatcher().dispatchButtonClickEvent(
-                                server == null ? api : server,
-                                messageId,
-                                server,
-                                interaction.getChannel().orElse(null),
-                                interaction.getUser(),
-                                buttonClickEvent);
-                        break;
-                    case SELECT_MENU:
-                        SelectMenuChooseEvent selectMenuChooseEvent = new SelectMenuChooseEventImpl(interaction);
-                        api.getEventDispatcher().dispatchSelectMenuChooseEvent(
-                                server == null ? api : server,
-                                messageId,
-                                server,
-                                interaction.getChannel().orElse(null),
-                                interaction.getUser(),
-                                selectMenuChooseEvent
-                        );
-                        break;
-                    default:
-                        break;
-                }
-                break;
-            default:
-                break;
+            switch (interactionType) {
+                case SLASH_COMMAND:
+                    SlashCommandCreateEvent slashCommandCreateEvent =
+                            new SlashCommandCreateEventImpl(interaction);
+                    api.getEventDispatcher().dispatchSlashCommandCreateEvent(
+                            server == null ? api : server,
+                            server,
+                            interaction.getChannel().orElse(null),
+                            interaction.getUser(),
+                            slashCommandCreateEvent
+                    );
+                    break;
+                case MESSAGE_COMPONENT:
+                    MessageComponentCreateEvent messageComponentCreateEvent =
+                            new MessageComponentCreateEventImpl(interaction);
+                    long messageId = messageComponentCreateEvent.getMessageComponentInteraction().getMessage().getId();
+                    api.getEventDispatcher().dispatchMessageComponentCreateEvent(
+                            server == null ? api : server,
+                            messageId,
+                            server,
+                            interaction.getChannel().orElse(null),
+                            interaction.getUser(),
+                            messageComponentCreateEvent);
+                    switch (componentType) {
+                        case BUTTON:
+                            ButtonClickEvent buttonClickEvent = new ButtonClickEventImpl(interaction);
+                            api.getEventDispatcher().dispatchButtonClickEvent(
+                                    server == null ? api : server,
+                                    messageId,
+                                    server,
+                                    interaction.getChannel().orElse(null),
+                                    interaction.getUser(),
+                                    buttonClickEvent);
+                            break;
+                        case SELECT_MENU:
+                            SelectMenuChooseEvent selectMenuChooseEvent = new SelectMenuChooseEventImpl(interaction);
+                            api.getEventDispatcher().dispatchSelectMenuChooseEvent(
+                                    server == null ? api : server,
+                                    messageId,
+                                    server,
+                                    interaction.getChannel().orElse(null),
+                                    interaction.getUser(),
+                                    selectMenuChooseEvent
+                            );
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
