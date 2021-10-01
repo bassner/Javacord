@@ -78,7 +78,7 @@ public class InteractionMessageBuilderDelegateImpl extends MessageBuilderBaseDel
     public CompletableFuture<Void> updateOriginalMessage(InteractionBase interaction) {
         ObjectNode topBody = JsonNodeFactory.instance.objectNode();
         ObjectNode data = JsonNodeFactory.instance.objectNode();
-        prepareCommonWebhookMessageBodyParts(data);
+        prepareCommonWebhookMessageBodyParts(data, true);
         prepareComponents(data, true);
         topBody.put("type", InteractionCallbackType.UPDATE_MESSAGE.getId());
         topBody.set("data", data);
@@ -124,7 +124,7 @@ public class InteractionMessageBuilderDelegateImpl extends MessageBuilderBaseDel
     }
 
     private void prepareInteractionWebhookBodyParts(ObjectNode body) {
-        prepareCommonWebhookMessageBodyParts(body);
+        prepareCommonWebhookMessageBodyParts(body, true);
         prepareComponents(body, true);
         if (null != messageFlags) {
             body.put("flags", messageFlags.stream().mapToInt(MessageFlag::getId).sum());

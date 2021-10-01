@@ -486,7 +486,7 @@ public class MessageBuilderBaseDelegateImpl implements MessageBuilderBaseDelegat
     protected CompletableFuture<Message> send(String webhookId, String webhookToken, String displayName, URL avatarUrl,
                                               boolean wait, DiscordApi api) {
         ObjectNode body = JsonNodeFactory.instance.objectNode();
-        prepareCommonWebhookMessageBodyParts(body);
+        prepareCommonWebhookMessageBodyParts(body, false);
 
         if (displayName != null) {
             body.put("username", displayName);
@@ -681,13 +681,13 @@ public class MessageBuilderBaseDelegateImpl implements MessageBuilderBaseDelegat
         request.setMultipartBody(multipartBodyBuilder.build());
     }
 
-    protected void prepareCommonWebhookMessageBodyParts(ObjectNode body) {
+    protected void prepareCommonWebhookMessageBodyParts(ObjectNode body, boolean evenIfEmpty) {
         body.put("tts", this.tts);
         if (strBuilder.length() != 0) {
             body.put("content", strBuilder.toString());
         }
         prepareAllowedMentions(body);
-        prepareEmbeds(body, false);
+        prepareEmbeds(body, evenIfEmpty);
     }
 
     private void prepareEmbeds(ObjectNode body, boolean evenIfEmpty) {
