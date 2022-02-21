@@ -1,6 +1,5 @@
 package org.javacord.api.entity.message;
 
-import org.javacord.api.AccountType;
 import org.javacord.api.DiscordApi;
 import org.javacord.api.entity.DiscordEntity;
 import org.javacord.api.entity.Icon;
@@ -68,6 +67,14 @@ public interface MessageAuthor extends DiscordEntity, Nameable {
     Icon getAvatar();
 
     /**
+     * Gets the avatar of the user.
+     *
+     * @param size The size of the image, must be any power of 2 between 16 and 4096.
+     * @return The avatar of the user.
+     */
+    Icon getAvatar(int size);
+
+    /**
      * Gets the voice channel this MessageAuthor (if it is a User)
      * is connected to on the server where the message has been sent.
      *
@@ -96,7 +103,7 @@ public interface MessageAuthor extends DiscordEntity, Nameable {
      * @return Whether the author is the owner of the current account.
      */
     default boolean isBotOwner() {
-        return getApi().getAccountType() == AccountType.BOT && isUser() && getApi().getOwnerId() == getId();
+        return isUser() && getApi().getOwnerId() == getId();
     }
 
     /**
@@ -311,8 +318,7 @@ public interface MessageAuthor extends DiscordEntity, Nameable {
 
     /**
      * Checks if the author can see the channel where the message was sent.
-     * In private chats (private channel or group channel) this always returns {@code true} if the user is
-     * part of the chat.
+     * In private channels this always returns {@code true} if the user is part of the chat.
      * Always returns {@code false} if the author is not a user or the message was not sent on a server.
      *
      * @return Whether the author can see the channel or not.
@@ -348,15 +354,14 @@ public interface MessageAuthor extends DiscordEntity, Nameable {
     default boolean canCreateInstantInviteToTextChannel() {
         return getMessage()
                 .getChannel()
-                .asServerChannel()
+                .asRegularServerChannel()
                 .flatMap(serverChannel -> asUser().map(serverChannel::canCreateInstantInvite))
                 .orElse(false);
     }
 
     /**
      * Checks if the author can send messages in the channel where the message was sent.
-     * In private chats (private channel or group channel) this always returns {@code true} if the user is
-     * part of the chat.
+     * In private channels this always returns {@code true} if the user is part of the chat.
      * Please notice, this does not check if a user has blocked private messages!
      * Always returns {@code false} if the author is not a user.
      *
@@ -372,8 +377,7 @@ public interface MessageAuthor extends DiscordEntity, Nameable {
 
     /**
      * Checks if the author can use external emojis in the channel where the message was sent.
-     * In private chats (private channel or group channel) this always returns {@code true} if the author is
-     * part of the chat.
+     * In private channels this always returns {@code true} if the author is part of the chat.
      * Please notice, this does not check if a user has blocked private messages!
      * It also doesn't check if the user is even able to send any external emojis (twitch subscription or nitro).
      * Always returns {@code false} if the author is not a user.
@@ -390,8 +394,7 @@ public interface MessageAuthor extends DiscordEntity, Nameable {
 
     /**
      * Checks if the author can use embed links in the channel where the message was sent.
-     * In private chats (private channel or group channel) this always returns {@code true} if the author is
-     * part of the chat.
+     * In private channels this always returns {@code true} if the author is part of the chat.
      * Please notice, this does not check if a user has blocked private messages!
      * Always returns {@code false} if the author is not a user.
      *
@@ -407,8 +410,7 @@ public interface MessageAuthor extends DiscordEntity, Nameable {
 
     /**
      * Checks if the author can read the message history of the channel where the message was sent.
-     * In private chats (private channel or group channel) this always returns {@code true} if the user is
-     * part of the chat.
+     * In private channels this always returns {@code true} if the user is part of the chat.
      * Always returns {@code false} if the author is not a user.
      *
      * @return Whether the author can read the message history of the channel or not.
@@ -423,8 +425,7 @@ public interface MessageAuthor extends DiscordEntity, Nameable {
 
     /**
      * Checks if the author can use tts (text to speech) in the channel where the message was sent.
-     * In private chats (private channel or group channel) this always returns {@code true} if the user is
-     * part of the chat.
+     * In private channels this always returns {@code true} if the user is part of the chat.
      * Please notice, this does not check if a user has blocked private messages!
      * Always returns {@code false} if the author is not a user.
      *
@@ -468,8 +469,8 @@ public interface MessageAuthor extends DiscordEntity, Nameable {
 
     /**
      * Checks if the author can manage messages (delete or pin them or remove reactions of others) in the channel
-     * where the message was sent. In private chats (private channel or group channel) this always returns {@code true}
-     * if the user is part of the chat.
+     * where the message was sent.
+     * In private channels this always returns {@code true} if the user is part of the chat.
      * Always returns {@code false} if the author is not a user.
      *
      * @return Whether the author can manage messages in the channel or not.
@@ -484,8 +485,7 @@ public interface MessageAuthor extends DiscordEntity, Nameable {
 
     /**
      * Checks if the author can remove reactions of other users in the channel where the message was sent.
-     * In private chats (private channel or group channel) this always returns {@code true} if the user is
-     * part of the chat.
+     * In private channels this always returns {@code true} if the user is part of the chat.
      * Always returns {@code false} if the author is not a user.
      *
      * @return Whether the author can remove reactions of others in the channel or not.
@@ -500,8 +500,7 @@ public interface MessageAuthor extends DiscordEntity, Nameable {
 
     /**
      * Checks if the author can mention everyone (@everyone) in the channel where the message was sent.
-     * In private chats (private channel or group channel) this always returns {@code true} if the user is
-     * part of the chat.
+     * In private channels this always returns {@code true} if the user is part of the chat.
      * Always returns {@code false} if the author is not a user.
      *
      * @return Whether the given user can mention everyone (@everyone) or not.
@@ -516,8 +515,7 @@ public interface MessageAuthor extends DiscordEntity, Nameable {
 
     /**
      * Checks if the author can connect to the voice channel where the message was sent.
-     * In private chats (private channel or group channel) this always returns {@code true} if the user is
-     * part of the chat.
+     * In private channels this always returns {@code true} if the user is part of the chat.
      * Always returns {@code false} if the author is not a user or if the channel is not a voice channel.
      *
      * @return Whether the author can connect to the voice channel or not.
@@ -532,7 +530,7 @@ public interface MessageAuthor extends DiscordEntity, Nameable {
 
     /**
      * Checks if the author can mute other users in the voice channel where the message was sent.
-     * In private chats (private channel or group channel) this always returns @{code false}.
+     * In private channels this always returns @{code false}.
      * Always returns {@code false} if the author is not a user or if the channel is not a voice channel.
      *
      * @return Whether the author can mute other users in the voice channel or not.

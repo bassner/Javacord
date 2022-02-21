@@ -7,6 +7,7 @@ import org.javacord.api.entity.DiscordEntity;
 import org.javacord.api.entity.channel.Categorizable;
 import org.javacord.api.entity.channel.ChannelCategory;
 import org.javacord.api.entity.channel.ChannelType;
+import org.javacord.api.entity.channel.RegularServerChannel;
 import org.javacord.api.entity.channel.ServerChannel;
 import org.javacord.api.entity.channel.ServerTextChannel;
 import org.javacord.api.entity.channel.ServerVoiceChannel;
@@ -14,29 +15,29 @@ import org.javacord.api.entity.channel.TextChannel;
 import org.javacord.api.entity.permission.Permissions;
 import org.javacord.api.entity.permission.Role;
 import org.javacord.api.entity.user.User;
-import org.javacord.api.event.channel.group.GroupChannelChangeNameEvent;
 import org.javacord.api.event.channel.server.ServerChannelChangeNameEvent;
 import org.javacord.api.event.channel.server.ServerChannelChangeNsfwFlagEvent;
 import org.javacord.api.event.channel.server.ServerChannelChangeOverwrittenPermissionsEvent;
 import org.javacord.api.event.channel.server.ServerChannelChangePositionEvent;
+import org.javacord.api.event.channel.server.text.ServerTextChannelChangeDefaultAutoArchiveDurationEvent;
 import org.javacord.api.event.channel.server.text.ServerTextChannelChangeSlowmodeEvent;
 import org.javacord.api.event.channel.server.text.ServerTextChannelChangeTopicEvent;
 import org.javacord.api.event.channel.server.voice.ServerStageVoiceChannelChangeTopicEvent;
 import org.javacord.api.event.channel.server.voice.ServerVoiceChannelChangeBitrateEvent;
 import org.javacord.api.event.channel.server.voice.ServerVoiceChannelChangeUserLimitEvent;
 import org.javacord.core.entity.channel.ChannelCategoryImpl;
-import org.javacord.core.entity.channel.GroupChannelImpl;
+import org.javacord.core.entity.channel.RegularServerChannelImpl;
 import org.javacord.core.entity.channel.ServerChannelImpl;
 import org.javacord.core.entity.channel.ServerStageVoiceChannelImpl;
 import org.javacord.core.entity.channel.ServerTextChannelImpl;
 import org.javacord.core.entity.channel.ServerVoiceChannelImpl;
 import org.javacord.core.entity.permission.PermissionsImpl;
 import org.javacord.core.entity.server.ServerImpl;
-import org.javacord.core.event.channel.group.GroupChannelChangeNameEventImpl;
 import org.javacord.core.event.channel.server.ServerChannelChangeNameEventImpl;
 import org.javacord.core.event.channel.server.ServerChannelChangeNsfwFlagEventImpl;
 import org.javacord.core.event.channel.server.ServerChannelChangeOverwrittenPermissionsEventImpl;
 import org.javacord.core.event.channel.server.ServerChannelChangePositionEventImpl;
+import org.javacord.core.event.channel.server.text.ServerTextChannelChangeDefaultAutoArchiveDurationEventImpl;
 import org.javacord.core.event.channel.server.text.ServerTextChannelChangeSlowmodeEventImpl;
 import org.javacord.core.event.channel.server.text.ServerTextChannelChangeTopicEventImpl;
 import org.javacord.core.event.channel.server.voice.ServerStageVoiceChannelChangeTopicEventImpl;
@@ -48,7 +49,6 @@ import org.javacord.core.util.gateway.PacketHandler;
 import org.javacord.core.util.logging.LoggerUtil;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -79,6 +79,7 @@ public class ChannelUpdateHandler extends PacketHandler {
         switch (type) {
             case SERVER_TEXT_CHANNEL:
                 handleServerChannel(packet);
+                handleRegularServerChannel(packet);
                 handleServerTextChannel(packet);
                 break;
             case PRIVATE_CHANNEL:
@@ -86,24 +87,28 @@ public class ChannelUpdateHandler extends PacketHandler {
                 break;
             case SERVER_VOICE_CHANNEL:
                 handleServerChannel(packet);
+                handleRegularServerChannel(packet);
                 handleServerVoiceChannel(packet);
                 break;
             case SERVER_STAGE_VOICE_CHANNEL:
                 handleServerChannel(packet);
+                handleRegularServerChannel(packet);
                 handleServerVoiceChannel(packet);
                 handleServerStageVoiceChannel(packet);
                 break;
             case GROUP_CHANNEL:
-                handleGroupChannel(packet);
+                logger.info("Received CHANNEL_UPDATE packet for a group channel. This should be impossible.");
                 break;
             case CHANNEL_CATEGORY:
                 handleServerChannel(packet);
+                handleRegularServerChannel(packet);
                 handleChannelCategory(packet);
                 break;
             case SERVER_NEWS_CHANNEL:
                 logger.debug("Received CHANNEL_UPDATE packet for a news channel. In this Javacord version it is "
                         + "treated as a normal text channel!");
                 handleServerChannel(packet);
+                handleRegularServerChannel(packet);
                 handleServerTextChannel(packet);
                 break;
             case SERVER_STORE_CHANNEL:
@@ -144,33 +149,54 @@ public class ChannelUpdateHandler extends PacketHandler {
                         (DispatchQueueSelector) channel.getServer(), channel.getServer(), channel, event);
             }
         }
+    }
+
+    private void handleRegularServerChannel(JsonNode jsonChannel) {
+        long channelId = jsonChannel.get("id").asLong();
+        Optional<RegularServerChannel> optionalChannel = api.getRegularServerChannelById(channelId);
+        if (!optionalChannel.isPresent()) {
+            LoggerUtil.logMissingChannel(logger, channelId);
+            return;
+        }
+
+        RegularServerChannelImpl channel = (RegularServerChannelImpl) optionalChannel.get();
+        ServerImpl server = (ServerImpl) channel.getServer();
 
         final AtomicBoolean areYouAffected = new AtomicBoolean(false);
         ChannelCategory oldCategory = channel.asCategorizable().flatMap(Categorizable::getCategory).orElse(null);
         ChannelCategory newCategory = jsonChannel.hasNonNull("parent_id")
                 ? channel.getServer().getChannelCategoryById(jsonChannel.get("parent_id").asLong(-1)).orElse(null)
                 : null;
-        int oldRawPosition = channel.getRawPosition();
-        int newRawPosition = jsonChannel.get("position").asInt();
+
+
+        final RegularServerChannelImpl regularServerChannel = (RegularServerChannelImpl) channel;
+        final int oldRawPosition = regularServerChannel.getRawPosition();
+        final int newRawPosition = jsonChannel.get("position").asInt();
+
         if (oldRawPosition != newRawPosition || !Objects.deepEquals(oldCategory, newCategory)) {
-            int oldPosition = channel.getPosition();
-            if (channel instanceof ServerTextChannelImpl) {
-                ((ServerTextChannelImpl) channel).setParentId(newCategory == null ? -1 : newCategory.getId());
-            } else if (channel instanceof ServerVoiceChannelImpl) {
-                ((ServerVoiceChannelImpl) channel).setParentId(newCategory == null ? -1 : newCategory.getId());
+            final int oldPosition = regularServerChannel.getPosition();
+            if (regularServerChannel instanceof ServerTextChannelImpl) {
+                ((ServerTextChannelImpl) regularServerChannel).setParentId(
+                        newCategory == null ? -1 : newCategory.getId());
+            } else if (regularServerChannel instanceof ServerVoiceChannelImpl) {
+                ((ServerVoiceChannelImpl) regularServerChannel).setParentId(
+                        newCategory == null ? -1 : newCategory.getId());
             }
-            channel.setRawPosition(newRawPosition);
+            regularServerChannel.setRawPosition(newRawPosition);
 
-            int newPosition = channel.getPosition();
+            final int newPosition = regularServerChannel.getPosition();
 
-            ServerChannelChangePositionEvent event = new ServerChannelChangePositionEventImpl(
-                    channel, newPosition, oldPosition, newRawPosition, oldRawPosition, newCategory, oldCategory);
+            final ServerChannelChangePositionEvent event = new ServerChannelChangePositionEventImpl(
+                    regularServerChannel, newPosition, oldPosition, newRawPosition, oldRawPosition,
+                    newCategory, oldCategory);
 
             if (server.isReady()) {
                 api.getEventDispatcher().dispatchServerChannelChangePositionEvent(
-                        (DispatchQueueSelector) channel.getServer(), channel.getServer(), channel, event);
+                        (DispatchQueueSelector) regularServerChannel.getServer(),
+                        regularServerChannel.getServer(), regularServerChannel, event);
             }
         }
+
 
         Collection<Long> rolesWithOverwrittenPermissions = new HashSet<>();
         Collection<Long> usersWithOverwrittenPermissions = new HashSet<>();
@@ -185,15 +211,15 @@ public class ChannelUpdateHandler extends PacketHandler {
                         Role role = server.getRoleById(entityId).orElseThrow(() ->
                                 new IllegalStateException("Received channel update event with unknown role!"));
                         entity = Optional.of(role);
-                        oldOverwrittenPermissions = channel.getOverwrittenPermissions(role);
-                        overwrittenPermissions = channel.getInternalOverwrittenRolePermissions();
+                        oldOverwrittenPermissions = regularServerChannel.getOverwrittenPermissions(role);
+                        overwrittenPermissions = regularServerChannel.getInternalOverwrittenRolePermissions();
                         rolesWithOverwrittenPermissions.add(entityId);
                         break;
                     case 1:
-                        oldOverwrittenPermissions = channel.getOverwrittenUserPermissions()
+                        oldOverwrittenPermissions = regularServerChannel.getOverwrittenUserPermissions()
                                 .getOrDefault(entityId, PermissionsImpl.EMPTY_PERMISSIONS);
                         entity = api.getCachedUserById(entityId).map(DiscordEntity.class::cast);
-                        overwrittenPermissions = channel.getInternalOverwrittenUserPermissions();
+                        overwrittenPermissions = regularServerChannel.getInternalOverwrittenUserPermissions();
                         usersWithOverwrittenPermissions.add(entityId);
                         break;
                     default:
@@ -220,8 +246,8 @@ public class ChannelUpdateHandler extends PacketHandler {
         }
         ConcurrentHashMap<Long, Permissions> overwrittenRolePermissions;
         ConcurrentHashMap<Long, Permissions> overwrittenUserPermissions;
-        overwrittenRolePermissions = channel.getInternalOverwrittenRolePermissions();
-        overwrittenUserPermissions = channel.getInternalOverwrittenUserPermissions();
+        overwrittenRolePermissions = regularServerChannel.getInternalOverwrittenRolePermissions();
+        overwrittenUserPermissions = regularServerChannel.getInternalOverwrittenUserPermissions();
 
         Iterator<Map.Entry<Long, Permissions>> userIt = overwrittenUserPermissions.entrySet().iterator();
         while (userIt.hasNext()) {
@@ -340,6 +366,23 @@ public class ChannelUpdateHandler extends PacketHandler {
                     (DispatchQueueSelector) channel.getServer(), channel.getServer(), channel, event
             );
         }
+
+        int oldDefaultAutoArchiveDuration = channel.getDefaultAutoArchiveDuration();
+        int newDefaultAutoArchiveDuration = jsonChannel.has("default_auto_archive_duration")
+                ? jsonChannel.get("default_auto_archive_duration").asInt()
+                : 1440;
+        if (oldDefaultAutoArchiveDuration != newDefaultAutoArchiveDuration) {
+            channel.setDefaultAutoArchiveDuration(newDefaultAutoArchiveDuration);
+
+            ServerTextChannelChangeDefaultAutoArchiveDurationEvent event =
+                    new ServerTextChannelChangeDefaultAutoArchiveDurationEventImpl(channel,
+                            oldDefaultAutoArchiveDuration, newDefaultAutoArchiveDuration);
+
+            api.getEventDispatcher().dispatchServerTextChannelChangeDefaultAutoArchiveDurationEvent(
+                    (DispatchQueueSelector) channel.getServer(), channel.getServer(), channel, event
+            );
+
+        }
     }
 
     /**
@@ -414,35 +457,13 @@ public class ChannelUpdateHandler extends PacketHandler {
     }
 
     /**
-     * Handles a group channel update.
-     *
-     * @param jsonChannel The channel data.
-     */
-    private void handleGroupChannel(JsonNode jsonChannel) {
-        long channelId = jsonChannel.get("id").asLong();
-        api.getGroupChannelById(channelId).map(GroupChannelImpl.class::cast).ifPresent(channel -> {
-            String oldName = channel.getName().orElseThrow(AssertionError::new);
-            String newName = jsonChannel.get("name").asText();
-            if (!Objects.equals(oldName, newName)) {
-                channel.setName(newName);
-
-                GroupChannelChangeNameEvent event =
-                        new GroupChannelChangeNameEventImpl(channel, newName, oldName);
-
-                api.getEventDispatcher().dispatchGroupChannelChangeNameEvent(
-                        api, Collections.singleton(channel), channel.getMembers(), event);
-            }
-        });
-    }
-
-    /**
      * Dispatches a ServerChannelChangeOverwrittenPermissionsEvent.
      *
-     * @param channel The channel of the event.
+     * @param channel        The channel of the event.
      * @param newPermissions The new overwritten permissions.
      * @param oldPermissions The old overwritten permissions.
-     * @param entityId The id of the entity.
-     * @param entity The entity of the event.
+     * @param entityId       The id of the entity.
+     * @param entity         The entity of the event.
      */
     private void dispatchServerChannelChangeOverwrittenPermissionsEvent(
             ServerChannel channel, Permissions newPermissions, Permissions oldPermissions,

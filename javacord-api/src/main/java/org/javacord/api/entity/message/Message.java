@@ -4,11 +4,13 @@ import org.javacord.api.DiscordApi;
 import org.javacord.api.Javacord;
 import org.javacord.api.entity.DiscordEntity;
 import org.javacord.api.entity.UpdatableFromCache;
+import org.javacord.api.entity.channel.AutoArchiveDuration;
+import org.javacord.api.entity.channel.Channel;
 import org.javacord.api.entity.channel.ChannelType;
-import org.javacord.api.entity.channel.GroupChannel;
 import org.javacord.api.entity.channel.PrivateChannel;
 import org.javacord.api.entity.channel.ServerChannel;
 import org.javacord.api.entity.channel.ServerTextChannel;
+import org.javacord.api.entity.channel.ServerThreadChannel;
 import org.javacord.api.entity.channel.TextChannel;
 import org.javacord.api.entity.emoji.CustomEmoji;
 import org.javacord.api.entity.emoji.Emoji;
@@ -18,6 +20,7 @@ import org.javacord.api.entity.message.embed.EmbedBuilder;
 import org.javacord.api.entity.permission.PermissionType;
 import org.javacord.api.entity.permission.Role;
 import org.javacord.api.entity.server.Server;
+import org.javacord.api.entity.sticker.StickerItem;
 import org.javacord.api.entity.user.User;
 import org.javacord.api.listener.message.MessageAttachableListenerManager;
 import org.javacord.api.util.DiscordRegexPattern;
@@ -30,6 +33,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -365,7 +369,6 @@ public interface Message extends DiscordEntity, Comparable<Message>, UpdatableFr
                                            boolean updateContent, List<EmbedBuilder> embeds, boolean updateEmbed) {
         return api.getUncachedMessageUtil().edit(channelId, messageId, content, updateContent, embeds, updateEmbed);
     }
-
 
     /**
      * Updates the content and the embed of the message.
@@ -862,17 +865,6 @@ public interface Message extends DiscordEntity, Comparable<Message>, UpdatableFr
     Optional<MessageReference> getMessageReference();
 
     /**
-     * Gets the id of the referenced message.
-     *
-     * @return The id of the referenced message.
-     * @deprecated Use {@link #getMessageReference()} instead.
-     */
-    @Deprecated
-    default Optional<Long> getReferencedMessageId() {
-        return getMessageReference().flatMap(MessageReference::getMessageId);
-    }
-
-    /**
      * Gets the message referenced with a reply.
      * Only present if this message is type {@code MessageType.REPLY},
      * discord decided to send it and the message hasn't been deleted.
@@ -889,11 +881,10 @@ public interface Message extends DiscordEntity, Comparable<Message>, UpdatableFr
      * @return The referenced message.
      */
     default Optional<CompletableFuture<Message>> requestReferencedMessage() {
-        return getReferencedMessageId().map(id ->
+        return getReferencedMessage().map(message ->
                 getReferencedMessage().map(CompletableFuture::completedFuture)
-                        .orElseGet(() -> getApi().getMessageById(id, getChannel())));
+                        .orElseGet(() -> getApi().getMessageById(message.getId(), getChannel())));
     }
-
 
     /**
      * Checks if the message is kept in cache forever.
@@ -945,6 +936,13 @@ public interface Message extends DiscordEntity, Comparable<Message>, UpdatableFr
     Optional<String> getNonce();
 
     /**
+     * Gets the sticker items of the message.
+     *
+     * @return The sticker items of the message.
+     */
+    Set<StickerItem> getStickerItems();
+
+    /**
      * Gets a list with all channels mentioned in this message.
      *
      * @return A list with all channels mentioned in this message.
@@ -965,17 +963,6 @@ public interface Message extends DiscordEntity, Comparable<Message>, UpdatableFr
      * Checks if the message was sent in a {@link ChannelType#PRIVATE_CHANNEL private channel}.
      *
      * @return Whether the message was sent in a private channel.
-     * @deprecated Use {@link Message#isPrivateMessage()} instead.
-     */
-    @Deprecated // Deprecated to be consistent with #isServerMessage() and #isGroupMessage()
-    default boolean isPrivate() {
-        return getChannel().getType() == ChannelType.PRIVATE_CHANNEL;
-    }
-
-    /**
-     * Checks if the message was sent in a {@link ChannelType#PRIVATE_CHANNEL private channel}.
-     *
-     * @return Whether the message was sent in a private channel.
      */
     default boolean isPrivateMessage() {
         return getChannel().getType() == ChannelType.PRIVATE_CHANNEL;
@@ -988,15 +975,6 @@ public interface Message extends DiscordEntity, Comparable<Message>, UpdatableFr
      */
     default boolean isServerMessage() {
         return getChannel().getType() == ChannelType.SERVER_TEXT_CHANNEL;
-    }
-
-    /**
-     * Checks if the message was sent in a {@link ChannelType#GROUP_CHANNEL group channel}.
-     *
-     * @return Whether the message was sent in a group channel.
-     */
-    default boolean isGroupMessage() {
-        return getChannel().getType() == ChannelType.GROUP_CHANNEL;
     }
 
     /**
@@ -1062,7 +1040,6 @@ public interface Message extends DiscordEntity, Comparable<Message>, UpdatableFr
      */
     CompletableFuture<Void> removeReactionByEmoji(User user, String unicodeEmoji);
 
-
     /**
      * Removes all reactors of a given emoji reaction.
      *
@@ -1073,7 +1050,6 @@ public interface Message extends DiscordEntity, Comparable<Message>, UpdatableFr
         return getReactionByEmoji(emoji).map(Reaction::remove).orElseGet(() -> CompletableFuture.completedFuture(null));
     }
 
-
     /**
      * Removes all reactors of a given unicode emoji reaction.
      *
@@ -1081,7 +1057,6 @@ public interface Message extends DiscordEntity, Comparable<Message>, UpdatableFr
      * @return A future to tell us if the deletion was successful.
      */
     CompletableFuture<Void> removeReactionByEmoji(String unicodeEmoji);
-
 
     /**
      * Removes a user from the list of reactors of the given emoji reactions.
@@ -1171,7 +1146,17 @@ public interface Message extends DiscordEntity, Comparable<Message>, UpdatableFr
      * @return The server text channel.
      */
     default Optional<ServerTextChannel> getServerTextChannel() {
-        return Optional.ofNullable(getChannel() instanceof ServerTextChannel ? (ServerTextChannel) getChannel() : null);
+        return getChannel().asServerTextChannel();
+    }
+
+    /**
+     * Gets the server thread channel of the message.
+     * Only present if the message was sent in a thread in a server.
+     *
+     * @return The server thread channel.
+     */
+    default Optional<ServerThreadChannel> getServerThreadChannel() {
+        return getChannel().asServerThreadChannel();
     }
 
     /**
@@ -1181,17 +1166,7 @@ public interface Message extends DiscordEntity, Comparable<Message>, UpdatableFr
      * @return The private channel.
      */
     default Optional<PrivateChannel> getPrivateChannel() {
-        return Optional.ofNullable(getChannel() instanceof PrivateChannel ? (PrivateChannel) getChannel() : null);
-    }
-
-    /**
-     * Gets the group channel of the message.
-     * Only present if the message was sent in a group channel.
-     *
-     * @return The group channel.
-     */
-    default Optional<GroupChannel> getGroupChannel() {
-        return Optional.ofNullable(getChannel() instanceof GroupChannel ? (GroupChannel) getChannel() : null);
+        return getChannel().asPrivateChannel();
     }
 
     /**
@@ -1200,7 +1175,10 @@ public interface Message extends DiscordEntity, Comparable<Message>, UpdatableFr
      * @return The server of the message.
      */
     default Optional<Server> getServer() {
-        return getServerTextChannel().map(ServerChannel::getServer);
+        return getServerTextChannel()
+                .map(Channel::asServerChannel)
+                .orElseGet(() -> getServerThreadChannel().flatMap(Channel::asServerChannel))
+                .map(ServerChannel::getServer);
     }
 
     /**
@@ -1503,7 +1481,7 @@ public interface Message extends DiscordEntity, Comparable<Message>, UpdatableFr
         return !channel.isPresent()
                 || channel.get().hasPermission(user, PermissionType.ADMINISTRATOR)
                 || channel.get().hasPermissions(user,
-                PermissionType.READ_MESSAGES,
+                PermissionType.VIEW_CHANNEL,
                 PermissionType.READ_MESSAGE_HISTORY,
                 PermissionType.ADD_REACTIONS);
     }
@@ -1574,4 +1552,31 @@ public interface Message extends DiscordEntity, Comparable<Message>, UpdatableFr
         return getChannel().getMessageById(getId());
     }
 
+    /**
+     * Creates a thread for this message.
+     *
+     * @param name                The Thread name.
+     * @param autoArchiveDuration Duration in minutes to automatically archive the thread after recent activity.
+     * @return The created ServerThreadChannel.
+     */
+    default CompletableFuture<ServerThreadChannel> createThread(String name, AutoArchiveDuration autoArchiveDuration) {
+        return getServerTextChannel()
+                .map(serverTextChannel -> serverTextChannel.createThreadForMessage(this, name, autoArchiveDuration))
+                .orElseThrow(() -> new IllegalStateException(
+                        "In order to create a thread the channel of this message must be a ServerTextChannel"));
+    }
+
+    /**
+     * Creates a thread for this message.
+     *
+     * @param name                The Thread name.
+     * @param autoArchiveDuration Duration in minutes to automatically archive the thread after recent activity.
+     * @return The created ServerThreadChannel.
+     */
+    default CompletableFuture<ServerThreadChannel> createThread(String name, Integer autoArchiveDuration) {
+        return getServerTextChannel()
+                .map(serverTextChannel -> serverTextChannel.createThreadForMessage(this, name, autoArchiveDuration))
+                .orElseThrow(() -> new IllegalStateException(
+                        "In order to create a thread the channel of this message must be a ServerTextChannel"));
+    }
 }

@@ -1,6 +1,5 @@
 package org.javacord.api.entity.user;
 
-import org.javacord.api.AccountType;
 import org.javacord.api.DiscordApi;
 import org.javacord.api.entity.DiscordClient;
 import org.javacord.api.entity.DiscordEntity;
@@ -10,7 +9,6 @@ import org.javacord.api.entity.Nameable;
 import org.javacord.api.entity.Permissionable;
 import org.javacord.api.entity.UpdatableFromCache;
 import org.javacord.api.entity.activity.Activity;
-import org.javacord.api.entity.channel.GroupChannel;
 import org.javacord.api.entity.channel.PrivateChannel;
 import org.javacord.api.entity.channel.ServerVoiceChannel;
 import org.javacord.api.entity.message.Messageable;
@@ -72,7 +70,7 @@ public interface User extends DiscordEntity, Messageable, Nameable, Mentionable,
      * @return Whether this user is the owner of the current account.
      */
     default boolean isBotOwner() {
-        return getApi().getAccountType() == AccountType.BOT && getApi().getOwnerId() == getId();
+        return getApi().getOwnerId() == getId();
     }
 
     /**
@@ -216,6 +214,52 @@ public interface User extends DiscordEntity, Messageable, Nameable, Mentionable,
      * @return The avatar of the user.
      */
     Icon getAvatar();
+
+    /**
+     * Gets the avatar of the user.
+     *
+     * @param size the size of the image. must be any power of 2 between 16 and 4096
+     * @return The avatar of the user.
+     */
+    Icon getAvatar(int size);
+
+    /**
+     * Gets the user's server-specific avatar in the given server.
+     *
+     * @param server The server.
+     * @return The user's avatar in the server
+     */
+    Optional<Icon> getServerAvatar(Server server);
+
+    /**
+     * Gets the user's server-specific avatar in the given server at the given image size.
+     *
+     * @param server The server.
+     * @param size The size of the image, must be any power of 2 between 16 and 4096.
+     * @return The user's avatar in the server.
+     */
+    Optional<Icon> getServerAvatar(Server server, int size);
+
+    /**
+     * Gets the user's effective avatar in the given server.
+     * This will return the user's server-specific avatar if they have one, otherwise it will return their account
+     * avatar.
+     *
+     * @param server The server.
+     * @return The user's effective avatar.
+     */
+    Icon getEffectiveAvatar(Server server);
+
+    /**
+     * Gets the user's effective avatar in the given server at the given size.
+     * This will return the user's server-specific avatar if they have one, otherwise it will return their account
+     * avatar.
+     *
+     * @param server The server.
+     * @param size The size of the image, must be any power of 2 between 16 and 4096.
+     * @return The user's effective avatar.
+     */
+    Icon getEffectiveAvatar(Server server, int size);
 
     /**
      * Gets if the user has a default Discord avatar.
@@ -507,17 +551,6 @@ public interface User extends DiscordEntity, Messageable, Nameable, Mentionable,
      * @return The new (or old) private channel with the user.
      */
     CompletableFuture<PrivateChannel> openPrivateChannel();
-
-    /**
-     * Gets the currently existing group channels with the user.
-     *
-     * @return The group channels with the user.
-     */
-    default Collection<GroupChannel> getGroupChannels() {
-        return getApi().getGroupChannels().stream()
-                .filter(groupChannel -> groupChannel.getMembers().contains(this))
-                .collect(Collectors.toList());
-    }
 
     /**
      * Adds the given role to the user.

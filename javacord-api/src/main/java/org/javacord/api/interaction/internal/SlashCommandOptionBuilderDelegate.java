@@ -1,10 +1,12 @@
 package org.javacord.api.interaction.internal;
 
+import org.javacord.api.entity.channel.ChannelType;
 import org.javacord.api.interaction.SlashCommandOption;
 import org.javacord.api.interaction.SlashCommandOptionBuilder;
 import org.javacord.api.interaction.SlashCommandOptionChoice;
 import org.javacord.api.interaction.SlashCommandOptionType;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -42,6 +44,13 @@ public interface SlashCommandOptionBuilderDelegate {
     void setRequired(boolean required);
 
     /**
+     * Sets if this option can be autocompleted.
+     *
+     * @param autocompletable Whether the option can be autocompleted.
+     */
+    void setAutocompletable(boolean autocompletable);
+
+    /**
      * Adds a choice for the slash command option.
      *
      * @param choice The choice.
@@ -68,6 +77,48 @@ public interface SlashCommandOptionBuilderDelegate {
      * @param options The options.
      */
     void setOptions(List<SlashCommandOption> options);
+
+    /**
+     * Add a channel type to the slash command option.
+     *
+     * @param channelType The channel type.
+     */
+    void addChannelType(ChannelType channelType);
+
+    /**
+     * Sets the channel types for the slash command option.
+     *
+     * @param channelTypes The channel types.
+     */
+    void setChannelTypes(Collection<ChannelType> channelTypes);
+
+    /**
+     * Sets the {@link SlashCommandOptionType#LONG} min value for the slash command option.
+     *
+     * @param longMinValue The long min value.
+     */
+    void setLongMinValue(long longMinValue);
+
+    /**
+     * Sets the {@link SlashCommandOptionType#LONG} max value for the slash command option.
+     *
+     * @param longMaxValue The long max value.
+     */
+    void setLongMaxValue(long longMaxValue);
+
+    /**
+     * Sets the {@link SlashCommandOptionType#DECIMAL} min value for the slash command option.
+     *
+     * @param decimalMinValue The decimal min value.
+     */
+    void setDecimalMinValue(double decimalMinValue);
+
+    /**
+     * Sets the {@link SlashCommandOptionType#DECIMAL} max value for the slash command option.
+     *
+     * @param decimalMaxValue The decimal max value.
+     */
+    void setDecimalMaxValue(double decimalMaxValue);
 
     /**
      * Build the slash command option.

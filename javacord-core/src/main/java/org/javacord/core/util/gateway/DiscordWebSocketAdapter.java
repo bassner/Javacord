@@ -40,6 +40,11 @@ import org.javacord.core.util.handler.channel.ChannelUpdateHandler;
 import org.javacord.core.util.handler.channel.WebhooksUpdateHandler;
 import org.javacord.core.util.handler.channel.invite.InviteCreateHandler;
 import org.javacord.core.util.handler.channel.invite.InviteDeleteHandler;
+import org.javacord.core.util.handler.channel.thread.ThreadCreateHandler;
+import org.javacord.core.util.handler.channel.thread.ThreadDeleteHandler;
+import org.javacord.core.util.handler.channel.thread.ThreadListSyncHandler;
+import org.javacord.core.util.handler.channel.thread.ThreadMembersUpdateHandler;
+import org.javacord.core.util.handler.channel.thread.ThreadUpdateHandler;
 import org.javacord.core.util.handler.guild.GuildBanAddHandler;
 import org.javacord.core.util.handler.guild.GuildBanRemoveHandler;
 import org.javacord.core.util.handler.guild.GuildCreateHandler;
@@ -49,6 +54,7 @@ import org.javacord.core.util.handler.guild.GuildMemberAddHandler;
 import org.javacord.core.util.handler.guild.GuildMemberRemoveHandler;
 import org.javacord.core.util.handler.guild.GuildMemberUpdateHandler;
 import org.javacord.core.util.handler.guild.GuildMembersChunkHandler;
+import org.javacord.core.util.handler.guild.GuildStickersUpdateHandler;
 import org.javacord.core.util.handler.guild.GuildUpdateHandler;
 import org.javacord.core.util.handler.guild.VoiceServerUpdateHandler;
 import org.javacord.core.util.handler.guild.VoiceStateUpdateHandler;
@@ -807,12 +813,22 @@ public class DiscordWebSocketAdapter extends WebSocketAdapter {
         // emoji
         addHandler(new GuildEmojisUpdateHandler(api));
 
+        // sticker
+        addHandler(new GuildStickersUpdateHandler(api));
+
         // channel
         addHandler(new ChannelCreateHandler(api));
         addHandler(new ChannelDeleteHandler(api));
         addHandler(new ChannelPinsUpdateHandler(api));
         addHandler(new ChannelUpdateHandler(api));
         addHandler(new WebhooksUpdateHandler(api));
+
+        //thread
+        addHandler(new ThreadCreateHandler(api));
+        addHandler(new ThreadDeleteHandler(api));
+        addHandler(new ThreadListSyncHandler(api));
+        addHandler(new ThreadMembersUpdateHandler(api));
+        addHandler(new ThreadUpdateHandler(api));
 
         // user
         addHandler(new PresencesReplaceHandler(api));

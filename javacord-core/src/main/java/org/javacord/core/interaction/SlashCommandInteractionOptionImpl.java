@@ -10,60 +10,75 @@ import org.javacord.api.entity.user.User;
 import org.javacord.api.interaction.SlashCommandInteractionOption;
 import org.javacord.api.interaction.SlashCommandOptionType;
 import org.javacord.core.util.logging.LoggerUtil;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class SlashCommandInteractionOptionImpl implements SlashCommandInteractionOption {
 
     private final DiscordApi api;
+    private final Map<Long, User> resolvedUsers;
     private final String name;
     private final String stringRepresentation;
     private final String stringValue;
-    private final Integer intValue;
+    /**
+     * This is {@link SlashCommandOptionType#LONG} but it can be any integer between -2^53 and 2^53 and
+     * therefore exceeds Javas Integer range. This is the INTEGER option according to the Discord docs.
+     */
+    private final Long longValue;
     private final Boolean booleanValue;
     private final Long userValue;
     private final Long channelValue;
     private final Long roleValue;
     private final Long mentionableValue;
-    private final Double numberValue;
+    /**
+     * This is the NUMBER option according to the Discord docs.
+     */
+    private final Double decimalValue;
 
     private final List<SlashCommandInteractionOption> options;
+
+    private final Boolean focused;
 
     private static final Logger LOGGER = LoggerUtil.getLogger(SlashCommandInteractionOptionImpl.class);
 
     /**
      * Class constructor.
      *
-     * @param api      The DiscordApi instance.
-     * @param jsonData The json data of the option.
+     * @param api           The DiscordApi instance.
+     * @param jsonData      The json data of the option.
+     * @param resolvedUsers The map of resolved users and their ID.
      */
-    public SlashCommandInteractionOptionImpl(DiscordApi api, JsonNode jsonData) {
+    public SlashCommandInteractionOptionImpl(final DiscordApi api, final JsonNode jsonData,
+                                             Map<Long, User> resolvedUsers) {
         this.api = api;
+        this.resolvedUsers = resolvedUsers;
         name = jsonData.get("name").asText();
+        focused = jsonData.has("focused") ? jsonData.get("focused").asBoolean() : null;
         options = new ArrayList<>();
-        JsonNode valueNode = jsonData.get("value");
+        final JsonNode valueNode = jsonData.get("value");
 
         String localStringRepresentation = null;
         String localStringValue = null;
-        Integer localIntValue = null;
+        Long localLongValue = null;
         Boolean localBooleanValue = null;
         Long localUserValue = null;
         Long localChannelValue = null;
         Long localRoleValue = null;
         Long localMentionableValue = null;
-        Double localNumberValue = null;
+        Double localDecimalValue = null;
 
-        SlashCommandOptionType type = SlashCommandOptionType.fromValue(jsonData.get("type").asInt());
-        switch (type) {
+        final int typeInt = jsonData.get("type").asInt();
+        final SlashCommandOptionType slashCommandOptionType = SlashCommandOptionType.fromValue(typeInt);
+        switch (slashCommandOptionType) {
             case SUB_COMMAND:
             case SUB_COMMAND_GROUP:
                 if (jsonData.has("options") && jsonData.get("options").isArray()) {
-                    for (JsonNode optionJson : jsonData.get("options")) {
-                        options.add(new SlashCommandInteractionOptionImpl(api, optionJson));
+                    for (final JsonNode optionJson : jsonData.get("options")) {
+                        options.add(new SlashCommandInteractionOptionImpl(api, optionJson, resolvedUsers));
                     }
                 }
                 break;
@@ -71,9 +86,9 @@ public class SlashCommandInteractionOptionImpl implements SlashCommandInteractio
                 localStringValue = valueNode.asText();
                 localStringRepresentation = localStringValue;
                 break;
-            case INTEGER:
-                localIntValue = valueNode.asInt();
-                localStringRepresentation = String.valueOf(localIntValue);
+            case LONG:
+                localLongValue = valueNode.asLong();
+                localStringRepresentation = String.valueOf(localLongValue);
                 break;
             case BOOLEAN:
                 localBooleanValue = valueNode.asBoolean();
@@ -95,29 +110,34 @@ public class SlashCommandInteractionOptionImpl implements SlashCommandInteractio
                 localMentionableValue = Long.parseLong(valueNode.asText());
                 localStringRepresentation = String.valueOf(localMentionableValue);
                 break;
-            case NUMBER:
-                localNumberValue = valueNode.asDouble();
-                localStringRepresentation = String.valueOf(localNumberValue);
+            case DECIMAL:
+                localDecimalValue = valueNode.asDouble();
+                localStringRepresentation = String.valueOf(localDecimalValue);
                 break;
             default:
                 LOGGER.warn("Received slash command option of unknown type <{}>. "
-                        + "Please contact the developer!", type);
+                        + "Please contact the developer!", typeInt);
         }
 
         stringRepresentation = localStringRepresentation;
         stringValue = localStringValue;
-        intValue = localIntValue;
+        longValue = localLongValue;
         booleanValue = localBooleanValue;
         userValue = localUserValue;
         channelValue = localChannelValue;
         roleValue = localRoleValue;
         mentionableValue = localMentionableValue;
-        numberValue = localNumberValue;
+        decimalValue = localDecimalValue;
     }
 
     @Override
     public String getName() {
         return name;
+    }
+
+    @Override
+    public Optional<Boolean> isFocused() {
+        return Optional.ofNullable(focused);
     }
 
     @Override
@@ -131,8 +151,8 @@ public class SlashCommandInteractionOptionImpl implements SlashCommandInteractio
     }
 
     @Override
-    public Optional<Integer> getIntValue() {
-        return Optional.ofNullable(intValue);
+    public Optional<Long> getLongValue() {
+        return Optional.ofNullable(longValue);
     }
 
     @Override
@@ -143,7 +163,7 @@ public class SlashCommandInteractionOptionImpl implements SlashCommandInteractio
     @Override
     public Optional<User> getUserValue() {
         return Optional.ofNullable(userValue)
-                .flatMap(api::getCachedUserById);
+                .map(id -> api.getCachedUserById(id).orElseGet(() -> resolvedUsers.get(id)));
     }
 
     @Override
@@ -180,18 +200,21 @@ public class SlashCommandInteractionOptionImpl implements SlashCommandInteractio
             }
 
             mentionable = api.getCachedUserById(mentionableValue).map(Mentionable.class::cast);
+            if (!mentionable.isPresent()) {
+                mentionable = Optional.ofNullable(resolvedUsers.get(mentionableValue)).map(Mentionable.class::cast);
+            }
         }
         return mentionable;
     }
 
     @Override
-    public Optional<Double> getNumberValue() {
-        return Optional.ofNullable(numberValue);
+    public Optional<Double> getDecimalValue() {
+        return Optional.ofNullable(decimalValue);
     }
 
     @Override
     public Optional<CompletableFuture<Mentionable>> requestMentionableValue() {
-        Optional<CompletableFuture<Mentionable>> cacheOptional = getMentionableValue()
+        final Optional<CompletableFuture<Mentionable>> cacheOptional = getMentionableValue()
                 .map(CompletableFuture::completedFuture);
         if (cacheOptional.isPresent()) {
             return cacheOptional;
