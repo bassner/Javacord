@@ -54,6 +54,8 @@ public class AutocompleteInteractionImpl extends SlashCommandInteractionImpl imp
         return new RestRequest<Void>(getApi(),
                 RestMethod.POST, RestEndpoint.INTERACTION_RESPONSE)
                 .setUrlParameters(getIdAsString(), getToken())
+                .consumeGlobalRatelimit(false)
+                .includeAuthorizationHeader(false)
                 .setBody(topBody)
                 .execute(result -> null);
     }
