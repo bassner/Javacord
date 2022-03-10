@@ -96,9 +96,6 @@ public class InteractionCreateHandler extends PacketHandler {
                     channel = PrivateChannelImpl.getOrCreatePrivateChannel(api, channelId, user.getId(), user);
                 }
             }
-            case MODAL_SUBMIT:
-                interaction = new ModalInteractionImpl(api, channel, packet);
-                break;
 
             int typeId = packet.get("type").asInt();
             final InteractionType interactionType = InteractionType.fromValue(typeId);
@@ -148,6 +145,9 @@ public class InteractionCreateHandler extends PacketHandler {
                     break;
                 case APPLICATION_COMMAND_AUTOCOMPLETE:
                     interaction = new AutocompleteInteractionImpl(api, channel, packet);
+                    break;
+                case MODAL_SUBMIT:
+                    interaction = new ModalInteractionImpl(api, channel, packet);
                     break;
                 default:
                     logger.warn("Received interaction of unknown type <{}>. "
@@ -256,20 +256,20 @@ public class InteractionCreateHandler extends PacketHandler {
                             interaction.getUser(),
                             autocompleteCreateEvent);
                     break;
+                case MODAL_SUBMIT:
+                    ModalSubmitEvent modalSubmitEvent = new ModalSubmitEventImpl(interaction);
+                    api.getEventDispatcher().dispatchModalSubmitEvent(
+                            server == null ? api : server,
+                            server,
+                            interaction.getChannel().orElse(null),
+                            interaction.getUser(),
+                            modalSubmitEvent);
+                    break;
                 default:
                     break;
             }
         } finally {
             lock.unlock();
-            case MODAL_SUBMIT:
-                ModalSubmitEvent modalSubmitEvent = new ModalSubmitEventImpl(interaction);
-                api.getEventDispatcher().dispatchModalSubmitEvent(
-                        server == null ? api : server,
-                        server,
-                        interaction.getChannel().orElse(null),
-                        interaction.getUser(),
-                        modalSubmitEvent);
-                break;
         }
     }
 
