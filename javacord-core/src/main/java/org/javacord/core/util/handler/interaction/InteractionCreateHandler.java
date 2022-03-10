@@ -10,6 +10,7 @@ import org.javacord.api.event.interaction.ButtonClickEvent;
 import org.javacord.api.event.interaction.InteractionCreateEvent;
 import org.javacord.api.event.interaction.MessageComponentCreateEvent;
 import org.javacord.api.event.interaction.MessageContextMenuCommandEvent;
+import org.javacord.api.event.interaction.ModalSubmitEvent;
 import org.javacord.api.event.interaction.SelectMenuChooseEvent;
 import org.javacord.api.event.interaction.SlashCommandCreateEvent;
 import org.javacord.api.event.interaction.UserContextMenuCommandEvent;
@@ -24,6 +25,7 @@ import org.javacord.core.event.interaction.ButtonClickEventImpl;
 import org.javacord.core.event.interaction.InteractionCreateEventImpl;
 import org.javacord.core.event.interaction.MessageComponentCreateEventImpl;
 import org.javacord.core.event.interaction.MessageContextMenuCommandEventImpl;
+import org.javacord.core.event.interaction.ModalSubmitEventImpl;
 import org.javacord.core.event.interaction.SelectMenuChooseEventImpl;
 import org.javacord.core.event.interaction.SlashCommandCreateEventImpl;
 import org.javacord.core.event.interaction.UserContextMenuCommandEventImpl;
@@ -31,6 +33,7 @@ import org.javacord.core.interaction.AutocompleteInteractionImpl;
 import org.javacord.core.interaction.ButtonInteractionImpl;
 import org.javacord.core.interaction.InteractionImpl;
 import org.javacord.core.interaction.MessageContextMenuInteractionImpl;
+import org.javacord.core.interaction.ModalInteractionImpl;
 import org.javacord.core.interaction.SelectMenuInteractionImpl;
 import org.javacord.core.interaction.SlashCommandInteractionImpl;
 import org.javacord.core.interaction.UserContextMenuInteractionImpl;
@@ -93,6 +96,9 @@ public class InteractionCreateHandler extends PacketHandler {
                     channel = PrivateChannelImpl.getOrCreatePrivateChannel(api, channelId, user.getId(), user);
                 }
             }
+            case MODAL_SUBMIT:
+                interaction = new ModalInteractionImpl(api, channel, packet);
+                break;
 
             int typeId = packet.get("type").asInt();
             final InteractionType interactionType = InteractionType.fromValue(typeId);
@@ -255,6 +261,15 @@ public class InteractionCreateHandler extends PacketHandler {
             }
         } finally {
             lock.unlock();
+            case MODAL_SUBMIT:
+                ModalSubmitEvent modalSubmitEvent = new ModalSubmitEventImpl(interaction);
+                api.getEventDispatcher().dispatchModalSubmitEvent(
+                        server == null ? api : server,
+                        server,
+                        interaction.getChannel().orElse(null),
+                        interaction.getUser(),
+                        modalSubmitEvent);
+                break;
         }
     }
 
