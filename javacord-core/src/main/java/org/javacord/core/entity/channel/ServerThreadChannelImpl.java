@@ -1,29 +1,30 @@
 package org.javacord.core.entity.channel;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.javacord.api.entity.channel.ServerTextChannel;
+import org.javacord.api.entity.channel.RegularServerChannel;
 import org.javacord.api.entity.channel.ServerThreadChannel;
 import org.javacord.api.entity.channel.ThreadMember;
 import org.javacord.api.util.cache.MessageCache;
 import org.javacord.core.DiscordApiImpl;
 import org.javacord.core.entity.server.ServerImpl;
 import org.javacord.core.listener.channel.server.text.InternalServerTextChannelAttachableListenerManager;
+import org.javacord.core.util.Cleanupable;
 import org.javacord.core.util.cache.MessageCacheImpl;
 import org.javacord.core.util.rest.RestEndpoint;
 import org.javacord.core.util.rest.RestMethod;
 import org.javacord.core.util.rest.RestRequest;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /**
  * The implementation of {@link ServerThreadChannel}.
  */
-public class ServerThreadChannelImpl extends ServerChannelImpl implements ServerThreadChannel, InternalTextChannel,
-        InternalServerTextChannelAttachableListenerManager {
+public class ServerThreadChannelImpl extends ServerChannelImpl implements ServerThreadChannel, Cleanupable,
+        InternalTextChannel, InternalServerTextChannelAttachableListenerManager {
 
     /**
      * The message cache of the server text channel.
@@ -71,9 +72,9 @@ public class ServerThreadChannelImpl extends ServerChannelImpl implements Server
     private final Instant archiveTimestamp;
 
     /**
-     * A collection of the thread's users.
+     * The thread's users.
      */
-    private final List<ThreadMember> members;
+    private final Set<ThreadMember> members;
 
     /**
      * Creates a new server text channel object.
@@ -90,7 +91,7 @@ public class ServerThreadChannelImpl extends ServerChannelImpl implements Server
         messageCount = data.get("message_count").asInt(0);
         memberCount = data.get("member_count").asInt(0);
 
-        members = new ArrayList<>();
+        members = new HashSet<>();
         if (data.hasNonNull("member")) {
             // If userId is not included, that means this came from a GUILD_CREATE event
             // This means the userId is the bot's and the thread id is from this thread
@@ -112,13 +113,11 @@ public class ServerThreadChannelImpl extends ServerChannelImpl implements Server
         messageCache = new MessageCacheImpl(
                 api, api.getDefaultMessageCacheCapacity(), api.getDefaultMessageCacheStorageTimeInSeconds(),
                 api.isDefaultAutomaticMessageCacheCleanupEnabled());
-
-        api.addChannelToCache(this);
     }
 
     @Override
-    public ServerTextChannel getParent() {
-        return getServer().getTextChannelById(parentId)
+    public RegularServerChannel getParent() {
+        return getServer().getRegularChannelById(parentId)
                 .orElseThrow(() -> new AssertionError("Thread has no parent channel."));
     }
 
@@ -158,7 +157,7 @@ public class ServerThreadChannelImpl extends ServerChannelImpl implements Server
     }
 
     @Override
-    public List<ThreadMember> getMembers() {
+    public Set<ThreadMember> getMembers() {
         return members;
     }
 
@@ -184,16 +183,16 @@ public class ServerThreadChannelImpl extends ServerChannelImpl implements Server
     }
 
     @Override
-    public CompletableFuture<List<ThreadMember>> getThreadMembers() {
-        return new RestRequest<List<ThreadMember>>(getApi(), RestMethod.GET, RestEndpoint.LIST_THREAD_MEMBERS)
+    public CompletableFuture<Set<ThreadMember>> getThreadMembers() {
+        return new RestRequest<Set<ThreadMember>>(getApi(), RestMethod.GET, RestEndpoint.LIST_THREAD_MEMBERS)
                 .setUrlParameters(getIdAsString())
                 .execute(result -> {
-                    final List<ThreadMember> threadMembers = new ArrayList<>();
+                    final Set<ThreadMember> threadMembers = new HashSet<>();
                     final JsonNode jsonNode = result.getJsonBody();
                     for (final JsonNode node : jsonNode) {
                         threadMembers.add(new ThreadMemberImpl(getApi(), getServer(), node));
                     }
-                    return Collections.unmodifiableList(threadMembers);
+                    return Collections.unmodifiableSet(threadMembers);
                 });
     }
 
@@ -202,7 +201,7 @@ public class ServerThreadChannelImpl extends ServerChannelImpl implements Server
      *
      * @param members The new members.
      */
-    public void setMembers(final List<ThreadMember> members) {
+    public void setMembers(final Set<ThreadMember> members) {
         this.members.clear();
         this.members.addAll(members);
     }
@@ -215,5 +214,15 @@ public class ServerThreadChannelImpl extends ServerChannelImpl implements Server
     @Override
     public String getMentionTag() {
         return "<#" + getIdAsString() + ">";
+    }
+
+    @Override
+    public void cleanup() {
+        messageCache.cleanup();
+
+        ((DiscordApiImpl) getApi()).forEachCachedMessageWhere(
+                msg -> msg.getChannel().getId() == getId(),
+                msg -> ((DiscordApiImpl) getApi()).removeMessageFromCache(msg.getId())
+        );
     }
 }

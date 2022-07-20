@@ -21,10 +21,13 @@ import org.javacord.api.entity.channel.ChannelCategory;
 import org.javacord.api.entity.channel.ChannelType;
 import org.javacord.api.entity.channel.RegularServerChannel;
 import org.javacord.api.entity.channel.ServerChannel;
+import org.javacord.api.entity.channel.ServerForumChannel;
 import org.javacord.api.entity.channel.ServerStageVoiceChannel;
 import org.javacord.api.entity.channel.ServerTextChannel;
 import org.javacord.api.entity.channel.ServerThreadChannel;
 import org.javacord.api.entity.channel.ServerVoiceChannel;
+import org.javacord.api.entity.channel.UnknownRegularServerChannel;
+import org.javacord.api.entity.channel.UnknownServerChannel;
 import org.javacord.api.entity.emoji.KnownCustomEmoji;
 import org.javacord.api.entity.intent.Intent;
 import org.javacord.api.entity.permission.Role;
@@ -53,10 +56,13 @@ import org.javacord.core.entity.activity.ActivityImpl;
 import org.javacord.core.entity.auditlog.AuditLogImpl;
 import org.javacord.core.entity.channel.ChannelCategoryImpl;
 import org.javacord.core.entity.channel.RegularServerChannelImpl;
+import org.javacord.core.entity.channel.ServerForumChannelImpl;
 import org.javacord.core.entity.channel.ServerStageVoiceChannelImpl;
 import org.javacord.core.entity.channel.ServerTextChannelImpl;
 import org.javacord.core.entity.channel.ServerThreadChannelImpl;
 import org.javacord.core.entity.channel.ServerVoiceChannelImpl;
+import org.javacord.core.entity.channel.UnknownRegularServerChannelImpl;
+import org.javacord.core.entity.channel.UnknownServerChannelImpl;
 import org.javacord.core.entity.permission.RoleImpl;
 import org.javacord.core.entity.server.invite.InviteImpl;
 import org.javacord.core.entity.sticker.StickerImpl;
@@ -202,27 +208,27 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
     private final ReentrantLock audioConnectionLock = new ReentrantLock();
 
     /**
-     * A list with all consumers who will be informed when the server is ready.
+     * All consumers who will be informed when the server is ready.
      */
     private final List<Consumer<Server>> readyConsumers = new ArrayList<>();
 
     /**
-     * A map with all roles of the server.
+     * All roles of the server.
      */
     private final ConcurrentHashMap<Long, Role> roles = new ConcurrentHashMap<>();
 
     /**
-     * A list with all custom emojis from this server.
+     * All custom emojis from this server.
      */
-    private final Collection<KnownCustomEmoji> customEmojis = new ArrayList<>();
+    private final Set<KnownCustomEmoji> customEmojis = new HashSet<>();
 
     /**
-     * A list with all features from this server.
+     * All features from this server.
      */
     private final Collection<ServerFeature> serverFeatures = new ArrayList<>();
 
     /**
-     * A map with all stickers from this server.
+     * All stickers from this server.
      */
     private final ConcurrentHashMap<Long, Sticker> stickers = new ConcurrentHashMap<>();
 
@@ -354,6 +360,9 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
                     case SERVER_TEXT_CHANNEL:
                         getOrCreateServerTextChannel(channel);
                         break;
+                    case SERVER_FORUM_CHANNEL:
+                        getOrCreateServerForumChannel(channel);
+                        break;
                     case SERVER_VOICE_CHANNEL:
                         getOrCreateServerVoiceChannel(channel);
                         break;
@@ -374,8 +383,21 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
                         logger.debug("{} has a store channel. These are not supported in this Javacord version"
                                 + " and get ignored!", this);
                         break;
-                    default:
-                        logger.warn("Unknown or unexpected channel type. Your Javacord version might be outdated!");
+                    default: {
+                        try {
+                            if (channel.has("position")) {
+                                showFallbackWarningMessage(channel.get("type").asInt(), "UnknownRegularServerChannel");
+                                getOrCreateUnknownRegularServerChannel(channel);
+                            } else {
+                                showFallbackWarningMessage(channel.get("type").asInt(), "UnknownServerChannel");
+                                getOrCreateUnknownServerChannel(channel);
+                            }
+                        } catch (Exception exception) {
+                            logger.warn("An error occurred when trying to use a fallback channel implementation",
+                                    exception);
+                        }
+                    }
+
                 }
             }
         }
@@ -491,6 +513,12 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
         }
 
         api.addServerToCache(this);
+    }
+
+    private void showFallbackWarningMessage(int channelType, String fallbackName) {
+        logger.warn("Encountered not handled channel type: {}. "
+                        + "Trying to use the {} fallback implementation",
+                channelType, fallbackName);
     }
 
     /**
@@ -812,6 +840,55 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
     }
 
     /**
+     * Gets or creates a server forum channel.
+     *
+     * @param data The json data of the channel.
+     * @return The server forum channel.
+     */
+    public ServerForumChannel getOrCreateServerForumChannel(JsonNode data) {
+        long id = Long.parseLong(data.get("id").asText());
+        ChannelType type = ChannelType.fromId(data.get("type").asInt());
+        synchronized (this) {
+            switch (type) {
+                case SERVER_FORUM_CHANNEL:
+                    return getForumChannelById(id).orElseGet(() -> new ServerForumChannelImpl(api, this, data));
+                default:
+                    // Invalid channel type
+                    return null;
+            }
+        }
+    }
+
+    /**
+     * Gets or creates an unknown server channel.
+     *
+     * @param data The json data of the channel.
+     * @return The unknown server channel.
+     */
+    public UnknownServerChannel getOrCreateUnknownServerChannel(JsonNode data) {
+        long id = Long.parseLong(data.get("id").asText());
+        ChannelType type = ChannelType.fromId(data.get("type").asInt());
+        synchronized (this) {
+            return getUnknownChannelById(id).orElseGet(() -> new UnknownServerChannelImpl(api, this, data));
+        }
+    }
+
+    /**
+     * Gets or creates an unknown regular server channel.
+     *
+     * @param data The json data of the channel.
+     * @return The unknown regular server channel.
+     */
+    public UnknownRegularServerChannel getOrCreateUnknownRegularServerChannel(JsonNode data) {
+        long id = Long.parseLong(data.get("id").asText());
+        ChannelType type = ChannelType.fromId(data.get("type").asInt());
+        synchronized (this) {
+            return getUnknownRegularChannelById(id)
+                    .orElseGet(() -> new UnknownRegularServerChannelImpl(api, this, data));
+        }
+    }
+
+    /**
      * Removes a member from the server.
      *
      * @param userId The id of the user to remove.
@@ -989,12 +1066,8 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
         this.serverFeatures.addAll(serverFeatures);
     }
 
-    /**
-     * Gets an unordered collection with all channels in the server.
-     *
-     * @return An unordered collection with all channels in the server.
-     */
-    public Collection<ServerChannel> getUnorderedChannels() {
+    @Override
+    public Set<ServerChannel> getUnorderedChannels() {
         return api.getEntityCache().get().getChannelCache().getChannelsOfServer(getId());
     }
 
@@ -1079,8 +1152,8 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
     }
 
     @Override
-    public Collection<ServerFeature> getFeatures() {
-        return Collections.unmodifiableCollection(new HashSet<>(serverFeatures));
+    public Set<ServerFeature> getFeatures() {
+        return Collections.unmodifiableSet(new HashSet<>(serverFeatures));
     }
 
     @Override
@@ -1318,15 +1391,15 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
     }
 
     @Override
-    public CompletableFuture<Collection<RichInvite>> getInvites() {
-        return new RestRequest<Collection<RichInvite>>(getApi(), RestMethod.GET, RestEndpoint.SERVER_INVITE)
+    public CompletableFuture<Set<RichInvite>> getInvites() {
+        return new RestRequest<Set<RichInvite>>(getApi(), RestMethod.GET, RestEndpoint.SERVER_INVITE)
                 .setUrlParameters(getIdAsString())
                 .execute(result -> {
-                    Collection<RichInvite> invites = new HashSet<>();
+                    Set<RichInvite> invites = new HashSet<>();
                     for (JsonNode inviteJson : result.getJsonBody()) {
                         invites.add(new InviteImpl(getApi(), inviteJson));
                     }
-                    return Collections.unmodifiableCollection(invites);
+                    return Collections.unmodifiableSet(invites);
                 });
     }
 
@@ -1350,7 +1423,7 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
     }
 
     /**
-     * Gets a set with the real member objects of the server.
+     * Gets the real member objects of the server.
      *
      * @return The real members.
      */
@@ -1519,8 +1592,8 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
     }
 
     @Override
-    public CompletableFuture<Collection<Ban>> getBans(Integer limit, Long after) {
-        RestRequest<Collection<Ban>> request = new RestRequest<Collection<Ban>>(
+    public CompletableFuture<Set<Ban>> getBans(Integer limit, Long after) {
+        RestRequest<Set<Ban>> request = new RestRequest<Set<Ban>>(
                 getApi(),
                 RestMethod.GET,
                 RestEndpoint.BAN
@@ -1535,17 +1608,17 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
         }
 
         return request.execute(result -> {
-            ArrayList<Ban> bans = new ArrayList<>();
+            Set<Ban> bans = new HashSet<>();
             for (JsonNode ban : result.getJsonBody()) {
                 bans.add(new BanImpl(this, ban));
             }
-            return Collections.unmodifiableCollection(bans);
+            return Collections.unmodifiableSet(bans);
         });
     }
 
     @Override
-    public CompletableFuture<Collection<Ban>> getBans() {
-        CompletableFuture<Collection<Ban>> future = new CompletableFuture<>();
+    public CompletableFuture<Set<Ban>> getBans() {
+        CompletableFuture<Set<Ban>> future = new CompletableFuture<>();
         ArrayList<Ban> bans = new ArrayList<>();
 
         fetchBansPageAndAddAllToCollection(null, bans, future);
@@ -1555,14 +1628,14 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
 
     private void fetchBansPageAndAddAllToCollection(Long after,
                                                     ArrayList<Ban> banList,
-                                                    CompletableFuture<Collection<Ban>> futureToComplete) {
+                                                    CompletableFuture<Set<Ban>> futureToComplete) {
         this.getBans(1000, after).thenAccept((page) -> {
             banList.addAll(page);
 
             // If the response was smaller than 1000 entries, this was the last page.
             // Let's pass the full list to the future!
             if (page.size() < 1000) {
-                futureToComplete.complete(Collections.unmodifiableCollection(banList));
+                futureToComplete.complete(Collections.unmodifiableSet(new HashSet<>(banList)));
                 return;
             }
 
@@ -1666,12 +1739,12 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
     }
 
     @Override
-    public Collection<KnownCustomEmoji> getCustomEmojis() {
-        return Collections.unmodifiableCollection(new ArrayList<>(customEmojis));
+    public Set<KnownCustomEmoji> getCustomEmojis() {
+        return Collections.unmodifiableSet(customEmojis);
     }
 
     @Override
-    public CompletableFuture<List<SlashCommand>> getSlashCommands() {
+    public CompletableFuture<Set<SlashCommand>> getSlashCommands() {
         return api.getServerSlashCommands(this);
     }
 
@@ -1698,21 +1771,32 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
             channels.addAll(category.getChannels());
         });
 
-        final Map<ServerTextChannel, List<ServerThreadChannel>> serverTextChannelThreads = new HashMap<>();
+        final Map<RegularServerChannel, List<ServerThreadChannel>> regularServerChannelThreads = new HashMap<>();
         getThreadChannels().forEach(serverThreadChannel -> {
-            final ServerTextChannel serverTextChannel = serverThreadChannel.getParent();
-            serverTextChannelThreads.merge(serverTextChannel,
+            final RegularServerChannel regularServerChannel = serverThreadChannel.getParent();
+            regularServerChannelThreads.merge(regularServerChannel,
                     new ArrayList<>(Collections.singletonList(serverThreadChannel)),
                     (serverThreadChannels, serverThreadChannels2) -> {
                         serverThreadChannels.addAll(serverThreadChannels2);
                         return new ArrayList<>(serverThreadChannels);
                     });
         });
-        serverTextChannelThreads.forEach(
+        regularServerChannelThreads.forEach(
                 (serverTextChannel, serverThreadChannels) -> channels.addAll(channels.indexOf(serverTextChannel) + 1,
                         serverThreadChannels));
 
         return Collections.unmodifiableList(channels);
+    }
+
+    @Override
+    public List<RegularServerChannel> getRegularChannels() {
+        return Collections.unmodifiableList(getUnorderedChannels().stream()
+                .filter(RegularServerChannel.class::isInstance)
+                .map(Channel::asRegularServerChannel)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .sorted(RegularServerChannelImpl.COMPARE_BY_RAW_POSITION)
+                .collect(Collectors.toList()));
     }
 
     @Override
@@ -1731,6 +1815,17 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
         return Collections.unmodifiableList(getUnorderedChannels().stream()
                 .filter(ServerTextChannel.class::isInstance)
                 .map(Channel::asServerTextChannel)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .sorted(RegularServerChannelImpl.COMPARE_BY_RAW_POSITION)
+                .collect(Collectors.toList()));
+    }
+
+    @Override
+    public List<ServerForumChannel> getForumChannels() {
+        return Collections.unmodifiableList(getUnorderedChannels().stream()
+                .filter(ServerForumChannel.class::isInstance)
+                .map(Channel::asServerForumChannel)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .sorted(RegularServerChannelImpl.COMPARE_BY_RAW_POSITION)
@@ -1764,6 +1859,13 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
         return api.getEntityCache().get().getChannelCache().getChannelById(id)
                 .filter(ServerChannel.class::isInstance)
                 .map(ServerChannel.class::cast);
+    }
+
+    @Override
+    public Optional<RegularServerChannel> getRegularChannelById(long id) {
+        return api.getEntityCache().get().getChannelCache().getChannelById(id)
+                .filter(RegularServerChannel.class::isInstance)
+                .map(RegularServerChannel.class::cast);
     }
 
     @Override

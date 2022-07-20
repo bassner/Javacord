@@ -1,9 +1,12 @@
 package org.javacord.api.interaction;
 
 import org.javacord.api.DiscordApi;
+import org.javacord.api.entity.permission.PermissionType;
 import org.javacord.api.entity.server.Server;
 import org.javacord.api.interaction.internal.ApplicationCommandBuilderDelegate;
-import java.util.List;
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public abstract class ApplicationCommandBuilder<R extends ApplicationCommand,
@@ -62,14 +65,61 @@ public abstract class ApplicationCommandBuilder<R extends ApplicationCommand,
     }
 
     /**
-     * Sets the default permission for the message context menu
-     * whether the context menu is enabled by default when the app is added to a server.
+     * Sets the default required permissions to be able to use this command.
+     * Passing no arguments will cause the command to be available to admins only.
+     * This can later be overridden by server admins.
      *
-     * @param defaultPermission The default permission.
+     * @param requiredPermissions The required permissions to use this command.
      * @return The current instance in order to chain call methods.
      */
-    public T setDefaultPermission(Boolean defaultPermission) {
-        delegate.setDefaultPermission(defaultPermission);
+    public T setDefaultEnabledForPermissions(PermissionType... requiredPermissions) {
+        delegate.setDefaultEnabledForPermissions(EnumSet.copyOf(Arrays.asList(requiredPermissions)));
+        return (T) this;
+    }
+
+    /**
+     * Sets the default required permissions to be able to use this command.
+     * Passing no arguments will cause the command to be available to admins only.
+     * This can later be overridden by server admins.
+     *
+     * @param requiredPermissions The required permissions to use this command.
+     * @return The current instance in order to chain call methods.
+     */
+    public T setDefaultEnabledForPermissions(EnumSet<PermissionType> requiredPermissions) {
+        delegate.setDefaultEnabledForPermissions(requiredPermissions);
+        return (T) this;
+    }
+
+    /**
+     * Enables this command for use by all users.
+     * This can later be overridden by server admins.
+     * @return The current instance in order to chain call methods.
+     */
+    public T setDefaultEnabledForEveryone() {
+        delegate.setDefaultEnabledForEveryone();
+        return (T) this;
+    }
+
+    /**
+     * Sets whether this command should be disabled and only usable by server administrators by default.
+     * This can later be overridden by server administrators.
+     *
+     * @return Whether this command is disabled by default.
+     */
+    public T setDefaultDisabled() {
+        delegate.setDefaultDisabled();
+        return (T) this;
+    }
+
+    /**
+     * Sets whether this command is able to be used in DMs. By default, this is {@code true}
+     * This has no effect on server commands.
+     *
+     * @param enabledInDms Whether the command is enabled in DMs
+     * @return The current instance in order to chain call methods.
+     */
+    public T setEnabledInDms(boolean enabledInDms) {
+        delegate.setEnabledInDms(enabledInDms);
         return (T) this;
     }
 
@@ -85,7 +135,7 @@ public abstract class ApplicationCommandBuilder<R extends ApplicationCommand,
     /**
      * Creates a global application command.
      * When used to update multiple global slash commands at once
-     * {@link DiscordApi#bulkOverwriteGlobalApplicationCommands(List)} should be used instead.
+     * {@link DiscordApi#bulkOverwriteGlobalApplicationCommands(Set)} should be used instead.
      *
      * @param api The discord api instance.
      * @return The built application command.
@@ -97,7 +147,7 @@ public abstract class ApplicationCommandBuilder<R extends ApplicationCommand,
     /**
      * Creates an application command for a specific server.
      * When used to create multiple server application commands at once
-     * {@link DiscordApi#bulkOverwriteServerApplicationCommands(Server, List)} should be used instead.
+     * {@link DiscordApi#bulkOverwriteServerApplicationCommands(Server, Set)} should be used instead.
      *
      * @param server The server.
      * @return The built application command.
@@ -110,7 +160,7 @@ public abstract class ApplicationCommandBuilder<R extends ApplicationCommand,
     /**
      * Creates an application command for a specific server.
      * When used to create multiple server application commands at once
-     * {@link DiscordApi#bulkOverwriteServerApplicationCommands(Server, List)} should be used instead.
+     * {@link DiscordApi#bulkOverwriteServerApplicationCommands(Server, Set)} should be used instead.
      *
      * @param api The discord api instance.
      * @param server The server.

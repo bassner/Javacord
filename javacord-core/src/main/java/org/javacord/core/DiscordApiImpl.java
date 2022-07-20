@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import okhttp3.Dns;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
@@ -14,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 import org.javacord.api.DiscordApi;
 import org.javacord.api.Javacord;
 import org.javacord.api.entity.ApplicationInfo;
+import org.javacord.api.entity.DiscordEntity;
 import org.javacord.api.entity.activity.Activity;
 import org.javacord.api.entity.activity.ActivityType;
 import org.javacord.api.entity.channel.Channel;
@@ -22,6 +22,7 @@ import org.javacord.api.entity.channel.ChannelType;
 import org.javacord.api.entity.channel.PrivateChannel;
 import org.javacord.api.entity.channel.RegularServerChannel;
 import org.javacord.api.entity.channel.ServerChannel;
+import org.javacord.api.entity.channel.ServerForumChannel;
 import org.javacord.api.entity.channel.ServerStageVoiceChannel;
 import org.javacord.api.entity.channel.ServerTextChannel;
 import org.javacord.api.entity.channel.ServerThreadChannel;
@@ -44,11 +45,9 @@ import org.javacord.api.entity.webhook.IncomingWebhook;
 import org.javacord.api.entity.webhook.Webhook;
 import org.javacord.api.interaction.ApplicationCommand;
 import org.javacord.api.interaction.ApplicationCommandBuilder;
-import org.javacord.api.interaction.ApplicationCommandPermissions;
 import org.javacord.api.interaction.ApplicationCommandType;
 import org.javacord.api.interaction.MessageContextMenu;
 import org.javacord.api.interaction.ServerApplicationCommandPermissions;
-import org.javacord.api.interaction.ServerApplicationCommandPermissionsBuilder;
 import org.javacord.api.interaction.SlashCommand;
 import org.javacord.api.interaction.UserContextMenu;
 import org.javacord.api.listener.GloballyAttachableListener;
@@ -78,7 +77,6 @@ import org.javacord.core.entity.webhook.IncomingWebhookImpl;
 import org.javacord.core.entity.webhook.WebhookImpl;
 import org.javacord.core.interaction.ApplicationCommandBuilderDelegateImpl;
 import org.javacord.core.interaction.ApplicationCommandImpl;
-import org.javacord.core.interaction.ApplicationCommandPermissionsImpl;
 import org.javacord.core.interaction.MessageContextMenuImpl;
 import org.javacord.core.interaction.ServerApplicationCommandPermissionsImpl;
 import org.javacord.core.interaction.SlashCommandImpl;
@@ -364,19 +362,19 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     private final ConcurrentHashMap<Long, Server> nonReadyServers = new ConcurrentHashMap<>();
 
     /**
-     * A set with all unavailable servers.
+     * All unavailable servers.
      */
     private final HashSet<Long> unavailableServers = new HashSet<>();
 
     /**
-     * A map with all known custom emoji.
+     * All known custom emoji.
      */
     private final ConcurrentHashMap<Long, KnownCustomEmoji> customEmojis = new ConcurrentHashMap<>();
 
     /**
      * A map with all stickers.
      */
-    private static final ConcurrentHashMap<Long, Sticker> stickers = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, Sticker> stickers = new ConcurrentHashMap<>();
 
     /**
      * A map with all cached messages.
@@ -868,9 +866,9 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     /**
-     * Gets a collection with all servers, including ready and not ready ones.
+     * Gets all servers, including ready and not ready ones.
      *
-     * @return A collection with all servers.
+     * @return All servers.
      */
     public Collection<Server> getAllServers() {
         ArrayList<Server> allServers = new ArrayList<>(nonReadyServers.values());
@@ -965,6 +963,19 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
             if (channel == null) {
                 return cache;
             }
+
+            //Remove all ServerThreadChannels when the parent channel is removed
+            channel.asServerChannel().ifPresent(serverChannel -> {
+                if (serverChannel.asServerThreadChannel().isPresent()) {
+                    return;
+                }
+
+                serverChannel.getServer().getThreadChannels().stream()
+                        .filter(c -> c.getParent().getId() == serverChannel.getId())
+                        .mapToLong(DiscordEntity::getId)
+                        .forEach(this::removeChannelFromCache);
+            });
+
             if (channel instanceof Cleanupable) {
                 ((Cleanupable) channel).cleanup();
             }
@@ -1365,7 +1376,7 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
      * @param objectId      The id of the object.
      * @param listenerClass The listener class.
      * @param <T>           The type of the listener.
-     * @return A list with all object listeners of the given type.
+     * @return All object listeners of the given type.
      */
     @SuppressWarnings("unchecked")
     public <T extends ObjectAttachableListener> List<T> getObjectListeners(
@@ -1423,8 +1434,8 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public CompletableFuture<List<ApplicationCommand>> getGlobalApplicationCommands() {
-        return new RestRequest<List<ApplicationCommand>>(this, RestMethod.GET, RestEndpoint.APPLICATION_COMMANDS)
+    public CompletableFuture<Set<ApplicationCommand>> getGlobalApplicationCommands() {
+        return new RestRequest<Set<ApplicationCommand>>(this, RestMethod.GET, RestEndpoint.APPLICATION_COMMANDS)
                 .setUrlParameters(String.valueOf(clientId))
                 .execute(result -> jsonToApplicationCommandList(result.getJsonBody()));
     }
@@ -1437,8 +1448,8 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public CompletableFuture<List<ApplicationCommand>> getServerApplicationCommands(Server server) {
-        return new RestRequest<List<ApplicationCommand>>(this, RestMethod.GET, RestEndpoint.SERVER_APPLICATION_COMMANDS)
+    public CompletableFuture<Set<ApplicationCommand>> getServerApplicationCommands(Server server) {
+        return new RestRequest<Set<ApplicationCommand>>(this, RestMethod.GET, RestEndpoint.SERVER_APPLICATION_COMMANDS)
                 .setUrlParameters(String.valueOf(clientId), server.getIdAsString())
                 .execute(result -> jsonToApplicationCommandList(result.getJsonBody()));
     }
@@ -1451,8 +1462,8 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public CompletableFuture<List<SlashCommand>> getGlobalSlashCommands() {
-        return new RestRequest<List<SlashCommand>>(this, RestMethod.GET, RestEndpoint.APPLICATION_COMMANDS)
+    public CompletableFuture<Set<SlashCommand>> getGlobalSlashCommands() {
+        return new RestRequest<Set<SlashCommand>>(this, RestMethod.GET, RestEndpoint.APPLICATION_COMMANDS)
                 .setUrlParameters(String.valueOf(clientId))
                 .execute(result -> jsonToSlashCommandList(result.getJsonBody()));
     }
@@ -1465,8 +1476,8 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public CompletableFuture<List<SlashCommand>> getServerSlashCommands(Server server) {
-        return new RestRequest<List<SlashCommand>>(this, RestMethod.GET, RestEndpoint.SERVER_APPLICATION_COMMANDS)
+    public CompletableFuture<Set<SlashCommand>> getServerSlashCommands(Server server) {
+        return new RestRequest<Set<SlashCommand>>(this, RestMethod.GET, RestEndpoint.SERVER_APPLICATION_COMMANDS)
                 .setUrlParameters(String.valueOf(clientId), server.getIdAsString())
                 .execute(result -> jsonToSlashCommandList(result.getJsonBody()));
     }
@@ -1479,8 +1490,8 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public CompletableFuture<List<UserContextMenu>> getGlobalUserContextMenus() {
-        return new RestRequest<List<UserContextMenu>>(this, RestMethod.GET, RestEndpoint.APPLICATION_COMMANDS)
+    public CompletableFuture<Set<UserContextMenu>> getGlobalUserContextMenus() {
+        return new RestRequest<Set<UserContextMenu>>(this, RestMethod.GET, RestEndpoint.APPLICATION_COMMANDS)
                 .setUrlParameters(String.valueOf(clientId))
                 .execute(result -> jsonToUserContextMenuList(result.getJsonBody()));
     }
@@ -1493,8 +1504,8 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public CompletableFuture<List<UserContextMenu>> getServerUserContextMenus(Server server) {
-        return new RestRequest<List<UserContextMenu>>(this, RestMethod.GET, RestEndpoint.SERVER_APPLICATION_COMMANDS)
+    public CompletableFuture<Set<UserContextMenu>> getServerUserContextMenus(Server server) {
+        return new RestRequest<Set<UserContextMenu>>(this, RestMethod.GET, RestEndpoint.SERVER_APPLICATION_COMMANDS)
                 .setUrlParameters(String.valueOf(clientId), server.getIdAsString())
                 .execute(result -> jsonToUserContextMenuList(result.getJsonBody()));
     }
@@ -1507,8 +1518,8 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public CompletableFuture<List<MessageContextMenu>> getGlobalMessageContextMenus() {
-        return new RestRequest<List<MessageContextMenu>>(this, RestMethod.GET, RestEndpoint.APPLICATION_COMMANDS)
+    public CompletableFuture<Set<MessageContextMenu>> getGlobalMessageContextMenus() {
+        return new RestRequest<Set<MessageContextMenu>>(this, RestMethod.GET, RestEndpoint.APPLICATION_COMMANDS)
                 .setUrlParameters(String.valueOf(clientId))
                 .execute(result -> jsonToMessageContextMenuList(result.getJsonBody()));
     }
@@ -1521,8 +1532,8 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public CompletableFuture<List<MessageContextMenu>> getServerMessageContextMenus(Server server) {
-        return new RestRequest<List<MessageContextMenu>>(this, RestMethod.GET, RestEndpoint.SERVER_APPLICATION_COMMANDS)
+    public CompletableFuture<Set<MessageContextMenu>> getServerMessageContextMenus(Server server) {
+        return new RestRequest<Set<MessageContextMenu>>(this, RestMethod.GET, RestEndpoint.SERVER_APPLICATION_COMMANDS)
                 .setUrlParameters(String.valueOf(clientId), server.getIdAsString())
                 .execute(result -> jsonToMessageContextMenuList(result.getJsonBody()));
     }
@@ -1535,12 +1546,12 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public CompletableFuture<List<ServerApplicationCommandPermissions>> getServerApplicationCommandPermissions(
+    public CompletableFuture<Set<ServerApplicationCommandPermissions>> getServerApplicationCommandPermissions(
             Server server) {
-        return new RestRequest<List<ServerApplicationCommandPermissions>>(this, RestMethod.GET,
+        return new RestRequest<Set<ServerApplicationCommandPermissions>>(this, RestMethod.GET,
                 RestEndpoint.SERVER_APPLICATION_COMMAND_PERMISSIONS)
                 .setUrlParameters(String.valueOf(clientId), server.getIdAsString())
-                .execute(result -> jsonToServerApplicationCommandPermissionsList(result.getJsonBody()));
+                .execute(result -> jsonToServerApplicationCommandPermissionsSet(result.getJsonBody()));
     }
 
     @Override
@@ -1553,39 +1564,18 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public CompletableFuture<List<ServerApplicationCommandPermissions>> batchUpdateApplicationCommandPermissions(
-            Server server, List<ServerApplicationCommandPermissionsBuilder> slashCommandPermissionsBuilders) {
-        ArrayNode body = JsonNodeFactory.instance.arrayNode();
-        for (ServerApplicationCommandPermissionsBuilder permission : slashCommandPermissionsBuilders) {
-            ObjectNode node = JsonNodeFactory.instance.objectNode();
-            node.put("id", permission.getCommandId());
-            ArrayNode array = node.putArray("permissions");
-            for (ApplicationCommandPermissions permissionPermission : permission.getPermissions()) {
-                array.add(((ApplicationCommandPermissionsImpl) permissionPermission).toJsonNode());
-            }
-            body.add(node);
-        }
-
-        return new RestRequest<List<ServerApplicationCommandPermissions>>(server.getApi(), RestMethod.PUT,
-                RestEndpoint.SERVER_APPLICATION_COMMAND_PERMISSIONS)
-                .setUrlParameters(String.valueOf(server.getApi().getClientId()), server.getIdAsString())
-                .setBody(body)
-                .execute(result -> jsonToServerApplicationCommandPermissionsList(result.getJsonBody()));
-    }
-
-    @Override
-    public CompletableFuture<List<ApplicationCommand>> bulkOverwriteGlobalApplicationCommands(
-            List<? extends ApplicationCommandBuilder<?, ?, ?>> applicationCommandBuilderList) {
-        return new RestRequest<List<ApplicationCommand>>(this, RestMethod.PUT, RestEndpoint.APPLICATION_COMMANDS)
+    public CompletableFuture<Set<ApplicationCommand>> bulkOverwriteGlobalApplicationCommands(
+            Set<? extends ApplicationCommandBuilder<?, ?, ?>> applicationCommandBuilderList) {
+        return new RestRequest<Set<ApplicationCommand>>(this, RestMethod.PUT, RestEndpoint.APPLICATION_COMMANDS)
                 .setUrlParameters(String.valueOf(clientId))
                 .setBody(applicationCommandBuildersToArrayNode(applicationCommandBuilderList))
                 .execute(result -> jsonToApplicationCommandList(result.getJsonBody()));
     }
 
     @Override
-    public CompletableFuture<List<ApplicationCommand>> bulkOverwriteServerApplicationCommands(
-            long server, List<? extends ApplicationCommandBuilder<?, ?, ?>> applicationCommandBuilderList) {
-        return new RestRequest<List<ApplicationCommand>>(this, RestMethod.PUT, RestEndpoint.SERVER_APPLICATION_COMMANDS)
+    public CompletableFuture<Set<ApplicationCommand>> bulkOverwriteServerApplicationCommands(
+            long server, Set<? extends ApplicationCommandBuilder<?, ?, ?>> applicationCommandBuilderList) {
+        return new RestRequest<Set<ApplicationCommand>>(this, RestMethod.PUT, RestEndpoint.SERVER_APPLICATION_COMMANDS)
                 .setUrlParameters(String.valueOf(clientId), String.valueOf(server))
                 .setBody(applicationCommandBuildersToArrayNode(applicationCommandBuilderList))
                 .execute(result -> jsonToApplicationCommandList(result.getJsonBody()));
@@ -1596,7 +1586,7 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     //////////////////////////////////////////////
 
     private ArrayNode applicationCommandBuildersToArrayNode(
-            List<? extends ApplicationCommandBuilder<?, ?, ?>> applicationCommandBuilderList) {
+            Set<? extends ApplicationCommandBuilder<?, ?, ?>> applicationCommandBuilderList) {
         ArrayNode body = JsonNodeFactory.instance.arrayNode();
         for (ApplicationCommandBuilder<?, ?, ?> applicationCommandBuilder : applicationCommandBuilderList) {
             body.add(((ApplicationCommandBuilderDelegateImpl<?>)
@@ -1606,21 +1596,21 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
         return body;
     }
 
-    private List<ServerApplicationCommandPermissions> jsonToServerApplicationCommandPermissionsList(
+    private Set<ServerApplicationCommandPermissions> jsonToServerApplicationCommandPermissionsSet(
             JsonNode resultJson) {
-        List<ServerApplicationCommandPermissions> permissions = new ArrayList<>();
+        Set<ServerApplicationCommandPermissions> permissions = new HashSet<>();
         for (JsonNode jsonNode : resultJson) {
             permissions.add(new ServerApplicationCommandPermissionsImpl(this, jsonNode));
         }
         return permissions;
     }
 
-    private List<ApplicationCommand> jsonToApplicationCommandList(JsonNode resultJson) {
-        List<ApplicationCommand> applicationCommands = new ArrayList<>();
+    private Set<ApplicationCommand> jsonToApplicationCommandList(JsonNode resultJson) {
+        Set<ApplicationCommand> applicationCommands = new HashSet<>();
         for (JsonNode applicationCommandJson : resultJson) {
             applicationCommands.add(jsonToApplicationCommand(applicationCommandJson));
         }
-        return Collections.unmodifiableList(applicationCommands);
+        return Collections.unmodifiableSet(applicationCommands);
     }
 
     private ApplicationCommand jsonToApplicationCommand(JsonNode applicationCommandJson) {
@@ -1641,25 +1631,25 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
         }
     }
 
-    private List<SlashCommand> jsonToSlashCommandList(JsonNode resultJson) {
+    private Set<SlashCommand> jsonToSlashCommandList(JsonNode resultJson) {
         return jsonToApplicationCommandList(resultJson).stream()
                 .filter(applicationCommand -> applicationCommand.getType() == ApplicationCommandType.SLASH)
                 .map(SlashCommand.class::cast)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
-    private List<UserContextMenu> jsonToUserContextMenuList(JsonNode resultJson) {
+    private Set<UserContextMenu> jsonToUserContextMenuList(JsonNode resultJson) {
         return jsonToApplicationCommandList(resultJson).stream()
                 .filter(applicationCommand -> applicationCommand.getType() == ApplicationCommandType.USER)
                 .map(UserContextMenu.class::cast)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
-    private List<MessageContextMenu> jsonToMessageContextMenuList(JsonNode resultJson) {
+    private Set<MessageContextMenu> jsonToMessageContextMenuList(JsonNode resultJson) {
         return jsonToApplicationCommandList(resultJson).stream()
                 .filter(applicationCommand -> applicationCommand.getType() == ApplicationCommandType.MESSAGE)
                 .map(MessageContextMenu.class::cast)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
     @Override
@@ -1962,8 +1952,8 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public Collection<Long> getUnavailableServers() {
-        return Collections.unmodifiableCollection(unavailableServers);
+    public Set<Long> getUnavailableServers() {
+        return Collections.unmodifiableSet(unavailableServers);
     }
 
     @Override
@@ -1988,7 +1978,7 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public Collection<User> getCachedUsers() {
+    public Set<User> getCachedUsers() {
         return getEntityCache().get().getMemberCache().getUserCache().getUsers();
     }
 
@@ -2023,7 +2013,7 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
      * Get messages from the cache that satisfy a given condition.
      *
      * @param filter The filter for messages to be included.
-     * @return A set of cached messages satisfying the condition.
+     * @return The cached messages satisfying the condition.
      */
     public MessageSet getCachedMessagesWhere(Predicate<Message> filter) {
         messageCacheLock.lock();
@@ -2068,8 +2058,8 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public Collection<Server> getServers() {
-        return Collections.unmodifiableList(new ArrayList<>(servers.values()));
+    public Set<Server> getServers() {
+        return Collections.unmodifiableSet(new HashSet<>(servers.values()));
     }
 
     @Override
@@ -2078,8 +2068,8 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public Collection<KnownCustomEmoji> getCustomEmojis() {
-        return Collections.unmodifiableCollection(customEmojis.values());
+    public Set<KnownCustomEmoji> getCustomEmojis() {
+        return Collections.unmodifiableSet(new HashSet<>(customEmojis.values()));
     }
 
     @Override
@@ -2101,33 +2091,38 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public Collection<Channel> getChannels() {
+    public Set<Channel> getChannels() {
         return entityCache.get().getChannelCache().getChannels();
     }
 
     @Override
-    public Collection<PrivateChannel> getPrivateChannels() {
+    public Set<PrivateChannel> getPrivateChannels() {
         return entityCache.get().getChannelCache().getChannelsWithTypes(ChannelType.PRIVATE_CHANNEL);
     }
 
     @Override
-    public Collection<ServerChannel> getServerChannels() {
+    public Set<ServerChannel> getServerChannels() {
         return entityCache.get().getChannelCache().getChannelsWithTypes(ChannelType.getServerChannelTypes());
     }
 
     @Override
-    public Collection<RegularServerChannel> getRegularServerChannels() {
+    public Set<RegularServerChannel> getRegularServerChannels() {
         return entityCache.get().getChannelCache().getChannelsWithTypes(ChannelType.getRegularServerChannelTypes());
     }
 
     @Override
-    public Collection<ChannelCategory> getChannelCategories() {
+    public Set<ChannelCategory> getChannelCategories() {
         return entityCache.get().getChannelCache().getChannelsWithTypes(ChannelType.CHANNEL_CATEGORY);
     }
 
     @Override
-    public Collection<ServerTextChannel> getServerTextChannels() {
+    public Set<ServerTextChannel> getServerTextChannels() {
         return entityCache.get().getChannelCache().getChannelsWithTypes(ChannelType.SERVER_TEXT_CHANNEL);
+    }
+
+    @Override
+    public Set<ServerForumChannel> getServerForumChannels() {
+        return entityCache.get().getChannelCache().getChannelsWithTypes(ChannelType.SERVER_FORUM_CHANNEL);
     }
 
     @Override
@@ -2149,22 +2144,22 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     }
 
     @Override
-    public Collection<ServerVoiceChannel> getServerVoiceChannels() {
+    public Set<ServerVoiceChannel> getServerVoiceChannels() {
         return entityCache.get().getChannelCache().getChannelsWithTypes(ChannelType.SERVER_VOICE_CHANNEL);
     }
 
     @Override
-    public Collection<ServerStageVoiceChannel> getServerStageVoiceChannels() {
+    public Set<ServerStageVoiceChannel> getServerStageVoiceChannels() {
         return entityCache.get().getChannelCache().getChannelsWithTypes(ChannelType.SERVER_STAGE_VOICE_CHANNEL);
     }
 
     @Override
-    public Collection<TextChannel> getTextChannels() {
+    public Set<TextChannel> getTextChannels() {
         return entityCache.get().getChannelCache().getChannelsWithTypes(ChannelType.getTextChannelTypes());
     }
 
     @Override
-    public Collection<VoiceChannel> getVoiceChannels() {
+    public Set<VoiceChannel> getVoiceChannels() {
         return entityCache.get().getChannelCache().getChannelsWithTypes(ChannelType.getVoiceChannelTypes());
     }
 
