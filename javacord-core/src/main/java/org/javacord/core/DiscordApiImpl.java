@@ -31,6 +31,7 @@ import org.javacord.api.entity.channel.VoiceChannel;
 import org.javacord.api.entity.emoji.CustomEmoji;
 import org.javacord.api.entity.emoji.KnownCustomEmoji;
 import org.javacord.api.entity.intent.Intent;
+import org.javacord.api.entity.member.Member;
 import org.javacord.api.entity.message.Message;
 import org.javacord.api.entity.message.MessageSet;
 import org.javacord.api.entity.message.UncachedMessageUtil;
@@ -61,6 +62,7 @@ import org.javacord.core.entity.activity.ActivityImpl;
 import org.javacord.core.entity.activity.ApplicationInfoImpl;
 import org.javacord.core.entity.emoji.CustomEmojiImpl;
 import org.javacord.core.entity.emoji.KnownCustomEmojiImpl;
+import org.javacord.core.entity.member.MemberImpl;
 import org.javacord.core.entity.message.MessageImpl;
 import org.javacord.core.entity.message.MessageSetImpl;
 import org.javacord.core.entity.message.UncachedMessageUtilImpl;
@@ -68,8 +70,6 @@ import org.javacord.core.entity.server.ServerImpl;
 import org.javacord.core.entity.server.invite.InviteImpl;
 import org.javacord.core.entity.sticker.StickerImpl;
 import org.javacord.core.entity.sticker.StickerPackImpl;
-import org.javacord.core.entity.user.Member;
-import org.javacord.core.entity.user.MemberImpl;
 import org.javacord.core.entity.user.UserImpl;
 import org.javacord.core.entity.user.UserPresence;
 import org.javacord.core.entity.webhook.IncomingWebhookImpl;
@@ -1985,7 +1985,7 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
                 .map(CompletableFuture::completedFuture)
                 .orElseGet(() -> new RestRequest<User>(this, RestMethod.GET, RestEndpoint.USER)
                         .setUrlParameters(Long.toUnsignedString(id))
-                        .execute(result -> new UserImpl(this, result.getJsonBody(), (MemberImpl) null, null)));
+                        .execute(result -> new UserImpl(this, result.getJsonBody())));
     }
 
     @Override

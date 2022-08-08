@@ -2,11 +2,11 @@ package org.javacord.api.listener.server;
 
 import org.javacord.api.event.server.ServerJoinEvent;
 import org.javacord.api.listener.GloballyAttachableListener;
-import org.javacord.api.listener.server.member.ServerMemberJoinListener;
+import org.javacord.api.listener.server.member.ServerServerMemberJoinListener;
 
 /**
  * This listener listens to server joins.
- * Do not confuse it with the {@link ServerMemberJoinListener}:
+ * Do not confuse it with the {@link ServerServerMemberJoinListener}:
  * {@code ServerMemberJoinListener} is for other users and {@code ServerJoinListener} is for yourself!
  */
 @FunctionalInterface

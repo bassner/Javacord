@@ -6,6 +6,7 @@ import org.javacord.api.DiscordApi;
 import org.javacord.api.entity.Attachment;
 import org.javacord.api.entity.Mentionable;
 import org.javacord.api.entity.channel.ServerChannel;
+import org.javacord.api.entity.member.Member;
 import org.javacord.api.entity.permission.Role;
 import org.javacord.api.entity.user.User;
 import org.javacord.api.interaction.SlashCommandInteractionOption;
@@ -50,13 +51,16 @@ public class SlashCommandInteractionOptionImpl implements SlashCommandInteractio
     /**
      * Class constructor.
      *
-     * @param api           The DiscordApi instance.
-     * @param jsonData      The json data of the option.
-     * @param resolvedUsers The map of resolved users and their ID.
+     * @param api                 The DiscordApi instance.
+     * @param jsonData            The json data of the option.
+     * @param resolvedUsers       The map of resolved users and their ID.
+     * @param resolvedMembers     The map of resolved members and their ID.
      * @param resolvedAttachments The map of resolved attachments and their ID.
      */
     public SlashCommandInteractionOptionImpl(final DiscordApi api, final JsonNode jsonData,
-                                             Map<Long, User> resolvedUsers, Map<Long, Attachment> resolvedAttachments) {
+                                             Map<Long, User> resolvedUsers,
+                                             Map<Long, Member> resolvedMembers,
+                                             Map<Long, Attachment> resolvedAttachments) {
         this.api = api;
         this.resolvedUsers = resolvedUsers;
         name = jsonData.get("name").asText();
@@ -83,7 +87,7 @@ public class SlashCommandInteractionOptionImpl implements SlashCommandInteractio
                 if (jsonData.has("options") && jsonData.get("options").isArray()) {
                     for (final JsonNode optionJson : jsonData.get("options")) {
                         options.add(new SlashCommandInteractionOptionImpl(api, optionJson, resolvedUsers,
-                                resolvedAttachments));
+                                resolvedMembers, resolvedAttachments));
                     }
                 }
                 break;

@@ -26,11 +26,12 @@ public interface VoiceChannel extends Channel, VoiceChannelAttachableListenerMan
         if (!canSee(user)) {
             return false;
         }
-        Optional<ServerVoiceChannel> severVoiceChannel = asServerVoiceChannel();
-        return !severVoiceChannel.isPresent()
-                || severVoiceChannel.get().hasAnyPermission(user,
-                PermissionType.ADMINISTRATOR,
-                PermissionType.CONNECT);
+        Optional<ServerVoiceChannel> serverVoiceChannel = asServerVoiceChannel();
+        return !serverVoiceChannel.isPresent()
+                || serverVoiceChannel.flatMap(svc -> svc.getServer().getMemberById(user.getId()))
+                .map(member -> member.hasAnyPermission(PermissionType.ADMINISTRATOR,
+                        PermissionType.MUTE_MEMBERS))
+                .orElse(false);
     }
 
     /**
@@ -60,9 +61,10 @@ public interface VoiceChannel extends Channel, VoiceChannelAttachableListenerMan
         }
         Optional<ServerVoiceChannel> serverVoiceChannel = asServerVoiceChannel();
         return !serverVoiceChannel.isPresent()
-                || serverVoiceChannel.get().hasAnyPermission(user,
-                PermissionType.ADMINISTRATOR,
-                PermissionType.MUTE_MEMBERS);
+                || serverVoiceChannel.flatMap(svc -> svc.getServer().getMemberById(user.getId()))
+                .map(member -> member.hasAnyPermission(PermissionType.ADMINISTRATOR,
+                        PermissionType.MUTE_MEMBERS))
+                .orElse(false);
     }
 
     /**

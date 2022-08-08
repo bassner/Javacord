@@ -18,7 +18,6 @@ import org.javacord.api.interaction.ApplicationCommandType;
 import org.javacord.api.interaction.InteractionType;
 import org.javacord.core.entity.channel.PrivateChannelImpl;
 import org.javacord.core.entity.server.ServerImpl;
-import org.javacord.core.entity.user.MemberImpl;
 import org.javacord.core.entity.user.UserImpl;
 import org.javacord.core.event.interaction.AutocompleteCreateEventImpl;
 import org.javacord.core.event.interaction.ButtonClickEventImpl;
@@ -66,7 +65,7 @@ public class InteractionCreateHandler extends PacketHandler {
             if (packet.hasNonNull("guild_id")) {
                 channel = api.getTextChannelById(channelId).orElse(null);
             } else {
-                UserImpl user = new UserImpl(api, packet.get("user"), (MemberImpl) null, null);
+                UserImpl user = new UserImpl(api, packet.get("user"));
                 channel = PrivateChannelImpl.getOrCreatePrivateChannel(api, channelId, user.getId(), user);
             }
         }
@@ -135,8 +134,9 @@ public class InteractionCreateHandler extends PacketHandler {
         api.getEventDispatcher().dispatchInteractionCreateEvent(
                 server == null ? api : server,
                 server,
+                interaction.getMember().orElse(null),
                 interaction.getChannel().orElse(null),
-                interaction.getUser(),
+                interaction.getUser().orElse(null),
                 event);
 
         switch (interactionType) {
@@ -151,8 +151,9 @@ public class InteractionCreateHandler extends PacketHandler {
                         api.getEventDispatcher().dispatchSlashCommandCreateEvent(
                                 server == null ? api : server,
                                 server,
+                                interaction.getMember().orElse(null),
                                 interaction.getChannel().orElse(null),
-                                interaction.getUser(),
+                                interaction.getUser().orElse(null),
                                 slashCommandCreateEvent);
                         break;
                     case USER:
@@ -161,8 +162,9 @@ public class InteractionCreateHandler extends PacketHandler {
                         api.getEventDispatcher().dispatchUserContextMenuCommandEvent(
                                 server,
                                 server,
+                                interaction.getMember().orElse(null),
                                 interaction.getChannel().orElse(null),
-                                interaction.getUser(),
+                                interaction.getUser().orElse(null),
                                 userContextMenuCommandEvent);
                         break;
                     case MESSAGE:
@@ -173,8 +175,9 @@ public class InteractionCreateHandler extends PacketHandler {
                                 interaction.asMessageContextMenuInteraction().orElseThrow(AssertionError::new)
                                         .getTarget().getId(),
                                 server,
+                                interaction.getMember().orElse(null),
                                 interaction.getChannel().orElse(null),
-                                interaction.getUser(),
+                                interaction.getUser().orElse(null),
                                 messageContextMenuCommandEvent);
                         break;
                     default:
@@ -192,8 +195,9 @@ public class InteractionCreateHandler extends PacketHandler {
                         server == null ? api : server,
                         messageId,
                         server,
+                        interaction.getMember().orElse(null),
                         interaction.getChannel().orElse(null),
-                        interaction.getUser(),
+                        interaction.getUser().orElse(null),
                         messageComponentCreateEvent);
                 switch (componentType) {
                     case BUTTON:
@@ -202,8 +206,9 @@ public class InteractionCreateHandler extends PacketHandler {
                                 server == null ? api : server,
                                 messageId,
                                 server,
+                                interaction.getMember().orElse(null),
                                 interaction.getChannel().orElse(null),
-                                interaction.getUser(),
+                                interaction.getUser().orElse(null),
                                 buttonClickEvent);
                         break;
                     case SELECT_MENU:
@@ -212,8 +217,9 @@ public class InteractionCreateHandler extends PacketHandler {
                                 server == null ? api : server,
                                 messageId,
                                 server,
+                                interaction.getMember().orElse(null),
                                 interaction.getChannel().orElse(null),
-                                interaction.getUser(),
+                                interaction.getUser().orElse(null),
                                 selectMenuChooseEvent);
                         break;
                     default:
@@ -225,8 +231,9 @@ public class InteractionCreateHandler extends PacketHandler {
                 api.getEventDispatcher().dispatchAutocompleteCreateEvent(
                         server == null ? api : server,
                         server,
+                        interaction.getMember().orElse(null),
                         interaction.getChannel().orElse(null),
-                        interaction.getUser(),
+                        interaction.getUser().orElse(null),
                         autocompleteCreateEvent);
                 break;
             case MODAL_SUBMIT:
@@ -234,8 +241,9 @@ public class InteractionCreateHandler extends PacketHandler {
                 api.getEventDispatcher().dispatchModalSubmitEvent(
                         server == null ? api : server,
                         server,
+                        interaction.getMember().orElse(null),
                         interaction.getChannel().orElse(null),
-                        interaction.getUser(),
+                        interaction.getUser().orElse(null),
                         modalSubmitEvent);
                 break;
             default:
