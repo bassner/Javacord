@@ -1430,8 +1430,10 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
 
     @Override
     public Set<Member> getMembers() {
-        return new HashSet<>(api.getEntityCache().get().getMemberCache()
-                .getMembersByServer(getId()));
+        // Do not try to wrap this in a new collection, otherwise this will mess up the startup
+        // with extremely long startup time and DiscordApi being marked as ready although servers are not fully loaded
+        return api.getEntityCache().get().getMemberCache()
+                .getMembersByServer(getId());
     }
 
     @Override
