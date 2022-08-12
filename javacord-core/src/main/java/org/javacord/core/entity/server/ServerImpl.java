@@ -1448,6 +1448,41 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
     }
 
     @Override
+    public boolean isWidgetEnabled() {
+        return widgetEnabled;
+    }
+
+    @Override
+    public Optional<Long> getWidgetChannelId() {
+        return Optional.ofNullable(widgetChannelId);
+    }
+
+    @Override
+    public Optional<Integer> getMaxPresences() {
+        return Optional.ofNullable(maxPresences);
+    }
+
+    @Override
+    public Optional<Integer> getMaxMembers() {
+        return Optional.ofNullable(maxMembers);
+    }
+
+    @Override
+    public Optional<Integer> getMaxVideoChannelUsers() {
+        return Optional.ofNullable(maxVideoChannelUsers);
+    }
+
+    @Override
+    public Optional<WelcomeScreen> getWelcomeScreen() {
+        return Optional.ofNullable(welcomeScreen);
+    }
+
+    @Override
+    public boolean isPremiumProgressBarEnabled() {
+        return premiumProgressBarEnabled;
+    }
+
+    @Override
     public List<Role> getRoles() {
         return Collections.unmodifiableList(roles.values().stream()
                 .sorted()
