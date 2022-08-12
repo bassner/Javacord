@@ -227,7 +227,7 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
     /**
      * All features from this server.
      */
-    private final Collection<ServerFeature> serverFeatures = new ArrayList<>();
+    private final EnumSet<ServerFeature> serverFeatures = EnumSet.noneOf(ServerFeature.class);
 
     /**
      * All stickers from this server.
@@ -330,12 +330,12 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
         this.api = api;
         ready = !api.hasUserCacheEnabled() || !api.isWaitingForUsersOnStartup();
 
-        id = Long.parseLong(data.get("id").asText());
+        id = data.get("id").asLong();
         name = data.get("name").asText();
         region = Region.getRegionByKey(data.get("region").asText());
         large = data.get("large").asBoolean();
         memberCount.set(data.get("member_count").asInt());
-        ownerId = Long.parseLong(data.get("owner_id").asText());
+        ownerId = data.get("owner_id").asLong();
         verificationLevel = VerificationLevel.fromId(data.get("verification_level").asInt());
         explicitContentFilterLevel = ExplicitContentFilterLevel.fromId(data.get("explicit_content_filter").asInt());
         defaultMessageNotificationLevel =
@@ -1198,7 +1198,7 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
 
     @Override
     public Set<ServerFeature> getFeatures() {
-        return Collections.unmodifiableSet(new HashSet<>(serverFeatures));
+        return Collections.unmodifiableSet(serverFeatures);
     }
 
     @Override

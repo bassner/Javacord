@@ -356,7 +356,7 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
     /**
      * All unavailable servers.
      */
-    private final HashSet<Long> unavailableServers = new HashSet<>();
+    private final Set<Long> unavailableServers = Collections.synchronizedSet(new HashSet<>());
 
     /**
      * All known custom emoji.

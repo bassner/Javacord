@@ -27,7 +27,7 @@ public class UserContextMenuInteractionImpl extends ApplicationCommandInteractio
      */
     public UserContextMenuInteractionImpl(DiscordApiImpl api, TextChannel channel, JsonNode jsonData) {
         super(api, channel, jsonData);
-        System.out.println(jsonData);
+
         JsonNode data = jsonData.get("data");
         targetId = data.get("target_id").asLong();
 
