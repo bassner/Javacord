@@ -2313,7 +2313,9 @@ public interface Server extends DiscordEntity, Nameable, UpdatableFromCache<Serv
      * @return A future to check if the move was successful.
      */
     default CompletableFuture<Void> moveYourself(ServerVoiceChannel channel) {
-        return getMemberById(getApi().getClientId()).map(member -> member.moveToVoiceChannel(channel)).orElseThrow();
+        return getMemberById(getApi().getClientId())
+                .map(member -> member.moveToVoiceChannel(channel))
+                .orElseThrow(AssertionError::new);
     }
 
     /**
@@ -2346,7 +2348,7 @@ public interface Server extends DiscordEntity, Nameable, UpdatableFromCache<Serv
      * @return A future to check if the mute was successful.
      */
     default CompletableFuture<Void> muteYourself() {
-        return getMemberById(getApi().getClientId()).map(Member::mute).orElseThrow();
+        return getMemberById(getApi().getClientId()).map(Member::mute).orElseThrow(AssertionError::new);
     }
 
     /**
@@ -2355,7 +2357,7 @@ public interface Server extends DiscordEntity, Nameable, UpdatableFromCache<Serv
      * @return A future to check if the unmute was successful.
      */
     default CompletableFuture<Void> unmuteYourself() {
-        return getMemberById(getApi().getClientId()).map(Member::unmute).orElseThrow();
+        return getMemberById(getApi().getClientId()).map(Member::unmute).orElseThrow(AssertionError::new);
     }
 
     /**
@@ -2388,7 +2390,7 @@ public interface Server extends DiscordEntity, Nameable, UpdatableFromCache<Serv
      * @return A future to check if the deafen was successful.
      */
     default CompletableFuture<Void> deafenYourself() {
-        return getMemberById(getApi().getClientId()).map(Member::deafen).orElseThrow();
+        return getMemberById(getApi().getClientId()).map(Member::deafen).orElseThrow(AssertionError::new);
     }
 
     /**
@@ -2397,7 +2399,7 @@ public interface Server extends DiscordEntity, Nameable, UpdatableFromCache<Serv
      * @return A future to check if the undeafen was successful.
      */
     default CompletableFuture<Void> undeafenYourself() {
-        return getMemberById(getApi().getClientId()).map(Member::undeafen).orElseThrow();
+        return getMemberById(getApi().getClientId()).map(Member::undeafen).orElseThrow(AssertionError::new);
     }
 
     /**
