@@ -1,6 +1,7 @@
 package org.javacord.api;
 
 import org.javacord.api.entity.ApplicationInfo;
+import org.javacord.api.entity.ApplicationOwner;
 import org.javacord.api.entity.Icon;
 import org.javacord.api.entity.activity.Activity;
 import org.javacord.api.entity.activity.ActivityType;
@@ -29,6 +30,7 @@ import org.javacord.api.entity.server.ServerBuilder;
 import org.javacord.api.entity.server.invite.Invite;
 import org.javacord.api.entity.sticker.Sticker;
 import org.javacord.api.entity.sticker.StickerPack;
+import org.javacord.api.entity.team.Team;
 import org.javacord.api.entity.user.User;
 import org.javacord.api.entity.user.UserStatus;
 import org.javacord.api.entity.webhook.IncomingWebhook;
@@ -536,24 +538,56 @@ public interface DiscordApi extends GloballyAttachableListenerManager {
      * Gets the id of the application's owner.
      *
      * @return The id of the application's owner.
+     * @see ApplicationInfo#getOwner()
+     * @see ApplicationOwner#getId()
      */
-    long getOwnerId();
+    default Optional<Long> getOwnerId() {
+        ApplicationInfo applicationInfo = getCachedApplicationInfo();
+        return applicationInfo.getOwner()
+                .map(ApplicationOwner::getId);
+    }
 
     /**
      * Gets the owner of the application.
      *
-     * @return The owner of the application.
+     * @return The owner of the application, if applicable.
+     * @see ApplicationInfo#getOwner()
+     * @see ApplicationOwner#requestUser()
      */
-    default CompletableFuture<User> getOwner() {
-        return getUserById(getOwnerId());
+    default Optional<CompletableFuture<User>> getOwner() {
+        return getCachedApplicationInfo().getOwner()
+                .map(ApplicationOwner::requestUser);
+    }
+
+    /**
+     * Gets the team of the application.
+     *
+     * @return The team of the application, if applicable.
+     * @see ApplicationInfo#getTeam()
+     */
+    default Optional<Team> getCachedTeam() {
+        return getCachedApplicationInfo().getTeam();
+    }
+
+    /**
+     * Requests the team of the application.
+     *
+     * @return The team of the application.
+     * @see ApplicationInfo#getTeam()
+     */
+    default CompletableFuture<Optional<Team>> requestTeam() {
+        return requestApplicationInfo().thenApply(ApplicationInfo::getTeam);
     }
 
     /**
      * Gets the client id of the application.
      *
      * @return The client id of the application.
+     * @see ApplicationInfo#getClientId()
      */
-    long getClientId();
+    default long getClientId() {
+        return getCachedApplicationInfo().getClientId();
+    }
 
     /**
      * Disconnects the bot.
@@ -607,12 +641,22 @@ public interface DiscordApi extends GloballyAttachableListenerManager {
     int getReconnectDelay(int attempt);
 
     /**
+     * Gets the cached application info of the bot.
+     *
+     * @return The cached application info.
+     * @see #requestApplicationInfo()
+     */
+    ApplicationInfo getCachedApplicationInfo();
+
+    /**
      * Gets the application info of the bot.
-     * The method only works for bot accounts.
+     *
+     * <p>This will always request the up to date application info and update the cache.</p>
      *
      * @return The application info of the bot.
+     * @see #getCachedApplicationInfo()
      */
-    CompletableFuture<ApplicationInfo> getApplicationInfo();
+    CompletableFuture<ApplicationInfo> requestApplicationInfo();
 
     /**
      * Gets a webhook by its id.

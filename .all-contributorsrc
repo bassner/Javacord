@@ -82,6 +82,51 @@
         "review",
         "question"
       ]
+    },
+    {
+      "login": "wasdennnoch",
+      "name": "Adrian Paschkowski",
+      "avatar_url": "https://avatars.githubusercontent.com/u/10065021?v=4",
+      "profile": "https://wasdennnoch.me",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "Joshix-1",
+      "name": "Joshix-1",
+      "avatar_url": "https://avatars.githubusercontent.com/u/57299889?v=4",
+      "profile": "https://github.com/Joshix-1",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "shubhwip",
+      "name": "Shubham Jain",
+      "avatar_url": "https://avatars.githubusercontent.com/u/23444368?v=4",
+      "profile": "http://shubhja.in",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "AhmedA1559",
+      "name": "Ahmed A",
+      "avatar_url": "https://avatars.githubusercontent.com/u/95593064?v=4",
+      "profile": "https://github.com/AhmedA1559",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "RealYusufIsmail",
+      "name": "Yusuf Arfan Ismail",
+      "avatar_url": "https://avatars.githubusercontent.com/u/67903886?v=4",
+      "profile": "http://realyusufismail-github-io.vercel.app",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "projectName": "Javacord",

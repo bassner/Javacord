@@ -1,6 +1,8 @@
 package org.javacord.core.entity;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.Logger;
 import org.javacord.api.DiscordApi;
 import org.javacord.api.entity.Attachment;
@@ -40,6 +42,11 @@ public class AttachmentImpl implements Attachment {
     private final String fileName;
 
     /**
+     * The description of the attachment.
+     */
+    private final String description;
+
+    /**
      * The size of the attachment in bytes.
      */
     private final int size;
@@ -72,13 +79,14 @@ public class AttachmentImpl implements Attachment {
     /**
      * Creates a new attachment.
      *
-     * @param api The discord api instance.
+     * @param api  The discord api instance.
      * @param data The data of the attachment.
      */
     public AttachmentImpl(DiscordApi api, final JsonNode data) {
         this.api = api;
         id = data.get("id").asLong();
         fileName = data.get("filename").asText();
+        description = data.hasNonNull("description") ? data.get("description").asText() : null;
         size = data.get("size").asInt();
         url = data.get("url").asText();
         proxyUrl = data.get("proxy_url").asText();
@@ -100,6 +108,11 @@ public class AttachmentImpl implements Attachment {
     @Override
     public String getFileName() {
         return fileName;
+    }
+
+    @Override
+    public Optional<String> getDescription() {
+        return Optional.ofNullable(description);
     }
 
     @Override
@@ -155,6 +168,40 @@ public class AttachmentImpl implements Attachment {
     @Override
     public CompletableFuture<BufferedImage> asImage() {
         return new FileContainer(getUrl()).asBufferedImage(getApi());
+    }
+
+    /**
+     * Creates the json structure of this attachment.
+     *
+     * @return The object node with the json data.
+     */
+    public ObjectNode toJsonNode() {
+        ObjectNode attachments = JsonNodeFactory.instance.objectNode();
+
+        attachments.put("id", id);
+        attachments.put("filename", fileName);
+
+        if (description != null) {
+            attachments.put("description", description);
+        }
+
+        attachments.put("size", size);
+        attachments.put("url", url);
+        attachments.put("proxy_url", proxyUrl);
+
+        if (height != null) {
+            attachments.put("height", height);
+        }
+
+        if (width != null) {
+            attachments.put("width", width);
+        }
+
+        if (ephemeral != null) {
+            attachments.put("ephemeral", ephemeral);
+        }
+
+        return attachments;
     }
 
     @Override
