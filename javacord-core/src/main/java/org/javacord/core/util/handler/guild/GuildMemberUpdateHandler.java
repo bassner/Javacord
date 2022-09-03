@@ -134,7 +134,7 @@ public class GuildMemberUpdateHandler extends PacketHandler {
                             UserRoleAddEvent event = new UserRoleAddEventImpl(role, newMember);
 
                             api.getEventDispatcher().dispatchUserRoleAddEvent((DispatchQueueSelector) role.getServer(),
-                                    role, role.getServer(), newMember.getId(), event);
+                                    role, role.getServer(), newMember, newMember.getId(), event);
                         }
 
                         // Removed roles
@@ -147,7 +147,7 @@ public class GuildMemberUpdateHandler extends PacketHandler {
                             UserRoleRemoveEvent event = new UserRoleRemoveEventImpl(role, newMember);
 
                             api.getEventDispatcher().dispatchUserRoleRemoveEvent(
-                                    (DispatchQueueSelector) role.getServer(), role, role.getServer(), newMember.getId(),
+                                    (DispatchQueueSelector) role.getServer(), role, role.getServer(), newMember, newMember.getId(),
                                     event);
                         }
                     }

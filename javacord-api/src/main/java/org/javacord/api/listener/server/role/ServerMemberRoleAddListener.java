@@ -4,13 +4,15 @@ import org.javacord.api.event.server.role.UserRoleAddEvent;
 import org.javacord.api.listener.GloballyAttachableListener;
 import org.javacord.api.listener.ObjectAttachableListener;
 import org.javacord.api.listener.server.ServerAttachableListener;
+import org.javacord.api.listener.server.member.ServerMemberAttachableListener;
 import org.javacord.api.listener.user.UserAttachableListener;
 
 /**
  * This listener listens to users being added to a role.
  */
 @FunctionalInterface
-public interface UserRoleAddListener extends ServerAttachableListener, UserAttachableListener, RoleAttachableListener,
+public interface ServerMemberRoleAddListener extends ServerAttachableListener, UserAttachableListener,
+        ServerMemberAttachableListener, RoleAttachableListener,
         GloballyAttachableListener, ObjectAttachableListener {
 
     /**

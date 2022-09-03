@@ -1,12 +1,12 @@
 package org.javacord.api.entity.member;
 
-import org.javacord.api.entity.DiscordEntity;
+import org.javacord.api.DiscordApi;
+import org.javacord.api.entity.DiscordClient;
 import org.javacord.api.entity.Icon;
-import org.javacord.api.entity.Mentionable;
-import org.javacord.api.entity.Permissionable;
+import org.javacord.api.entity.activity.Activity;
+import org.javacord.api.entity.channel.PrivateChannel;
 import org.javacord.api.entity.channel.ServerChannel;
 import org.javacord.api.entity.channel.ServerVoiceChannel;
-import org.javacord.api.entity.message.Messageable;
 import org.javacord.api.entity.permission.PermissionState;
 import org.javacord.api.entity.permission.PermissionType;
 import org.javacord.api.entity.permission.Permissions;
@@ -15,6 +15,9 @@ import org.javacord.api.entity.permission.Role;
 import org.javacord.api.entity.server.Server;
 import org.javacord.api.entity.server.ServerUpdater;
 import org.javacord.api.entity.user.User;
+import org.javacord.api.entity.user.UserFlag;
+import org.javacord.api.entity.user.UserLike;
+import org.javacord.api.entity.user.UserStatus;
 import org.javacord.api.listener.server.member.ServerMemberAttachableListenerManager;
 import java.awt.Color;
 import java.time.Duration;
@@ -22,6 +25,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -32,8 +36,7 @@ import java.util.stream.Collectors;
 /**
  * A member of a server.
  */
-public interface Member extends DiscordEntity, Messageable, Mentionable, Permissionable,
-        ServerMemberAttachableListenerManager {
+public interface Member extends UserLike, ServerMemberAttachableListenerManager {
 
     @Override
     default String getMentionTag() {
@@ -895,24 +898,73 @@ public interface Member extends DiscordEntity, Messageable, Mentionable, Permiss
         return getServer().banUser(getId(), deleteMessageDays, reason);
     }
 
-    /**
-     * Unbans the given user from the server.
-     *
-     * @param reason The audit log reason for this action.
-     * @return A future to check if the unban was successful.
-     */
-    default CompletableFuture<Void> unban(String reason) {
-        return getServer().unbanUser(getId(), reason);
+    @Override
+    default DiscordApi getApi() {
+        return getUser().getApi();
     }
 
-    /**
-     * Unbans the given user from the server.
-     *
-     * @return A future to check if the unban was successful.
-     */
-    default CompletableFuture<Void> unban() {
-        return getServer().unbanUser(getId(), null);
+    @Override
+    default String getName() {
+        return getUser().getName();
     }
 
+    @Override
+    default String getDiscriminator() {
+        return getUser().getDiscriminator();
+    }
 
+    @Override
+    default boolean isBot() {
+        return getUser().isBot();
+    }
+
+    @Override
+    default Set<Activity> getActivities() {
+        return getUser().getActivities();
+    }
+
+    @Override
+    default UserStatus getStatus() {
+        return getUser().getStatus();
+    }
+
+    @Override
+    default UserStatus getStatusOnClient(DiscordClient client) {
+        return getUser().getStatusOnClient(client);
+    }
+
+    @Override
+    default EnumSet<UserFlag> getUserFlags() {
+        return getUser().getUserFlags();
+    }
+
+    @Override
+    default Optional<String> getAvatarHash() {
+        return getUser().getAvatarHash();
+    }
+
+    @Override
+    default Icon getAvatar() {
+        return getUser().getAvatar();
+    }
+
+    @Override
+    default Icon getAvatar(int size) {
+        return getUser().getAvatar(size);
+    }
+
+    @Override
+    default boolean hasDefaultAvatar() {
+        return getUser().hasDefaultAvatar();
+    }
+
+    @Override
+    default Optional<PrivateChannel> getPrivateChannel() {
+        return getUser().getPrivateChannel();
+    }
+
+    @Override
+    default CompletableFuture<PrivateChannel> openPrivateChannel() {
+        return getUser().openPrivateChannel();
+    }
 }

@@ -218,7 +218,7 @@ public class VoiceStateUpdateHandler extends PacketHandler {
                 member, newChannel, oldChannel);
 
         api.getEventDispatcher().dispatchServerVoiceChannelMemberJoinEvent(
-                (DispatchQueueSelector) server, server, newChannel, member.getUser(), event);
+                (DispatchQueueSelector) server, server, member, newChannel, member.getUser(), event);
     }
 
     private void dispatchServerVoiceChannelMemberLeaveEvent(
@@ -227,7 +227,7 @@ public class VoiceStateUpdateHandler extends PacketHandler {
                 member, newChannel, oldChannel);
 
         api.getEventDispatcher().dispatchServerVoiceChannelMemberLeaveEvent(
-                (DispatchQueueSelector) server, server, oldChannel, member.getUser(), event);
+                (DispatchQueueSelector) server, server, member, oldChannel, member.getUser(), event);
     }
 
 }

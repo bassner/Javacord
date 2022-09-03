@@ -12,6 +12,7 @@ import org.javacord.api.entity.channel.ServerTextChannel;
 import org.javacord.api.entity.channel.ServerVoiceChannel;
 import org.javacord.api.entity.channel.UnknownRegularServerChannel;
 import org.javacord.api.entity.channel.UnknownServerChannel;
+import org.javacord.api.entity.member.Member;
 import org.javacord.api.event.channel.server.ServerChannelCreateEvent;
 import org.javacord.api.event.channel.user.PrivateChannelCreateEvent;
 import org.javacord.core.entity.channel.PrivateChannelImpl;
@@ -22,6 +23,10 @@ import org.javacord.core.event.channel.user.PrivateChannelCreateEventImpl;
 import org.javacord.core.util.event.DispatchQueueSelector;
 import org.javacord.core.util.gateway.PacketHandler;
 import org.javacord.core.util.logging.LoggerUtil;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * Handles the channel create packet.
@@ -216,8 +221,12 @@ public class ChannelCreateHandler extends PacketHandler {
             PrivateChannel privateChannel =
                     new PrivateChannelImpl(api, channel.get("id").asText(), recipient, recipient.getId());
             PrivateChannelCreateEvent event = new PrivateChannelCreateEventImpl(privateChannel);
+            Collection<Member> members = api.isUserCacheEnabled() ?
+                    api.getEntityCache().get().getMemberCache().getMembersById(recipient.getId())
+                    : Collections.emptySet();
 
-            api.getEventDispatcher().dispatchPrivateChannelCreateEvent(api, recipient, event);
+            api.getEventDispatcher().dispatchPrivateChannelCreateEvent(api, members, Collections.singleton(recipient),
+                    event);
         }
     }
 

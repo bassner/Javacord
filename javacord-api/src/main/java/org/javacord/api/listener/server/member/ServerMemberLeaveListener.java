@@ -13,7 +13,7 @@ import org.javacord.api.listener.user.UserAttachableListener;
  * {@code ServerMemberLeaveListener} is for other users and {@code ServerLeaveListener} is for yourself!
  */
 @FunctionalInterface
-public interface ServerServerMemberLeaveListener extends ServerAttachableListener, UserAttachableListener,
+public interface ServerMemberLeaveListener extends ServerAttachableListener, UserAttachableListener,
         GloballyAttachableListener, ObjectAttachableListener {
 
     /**

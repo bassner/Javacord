@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.javacord.api.DiscordApi;
 import org.javacord.api.entity.DiscordEntity;
 import org.javacord.api.entity.channel.PrivateChannel;
+import org.javacord.api.entity.member.Member;
 import org.javacord.api.entity.user.User;
 import org.javacord.api.event.channel.user.PrivateChannelCreateEvent;
 import org.javacord.api.util.cache.MessageCache;
@@ -13,6 +14,9 @@ import org.javacord.core.event.channel.user.PrivateChannelCreateEventImpl;
 import org.javacord.core.listener.channel.user.InternalPrivateChannelAttachableListenerManager;
 import org.javacord.core.util.Cleanupable;
 import org.javacord.core.util.cache.MessageCacheImpl;
+
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -161,8 +165,13 @@ public class PrivateChannelImpl implements PrivateChannel, Cleanupable, Internal
                                                                         PrivateChannelImpl privateChannel) {
         // dispatch PrivateChannelCreateEvent
         PrivateChannelCreateEvent event = new PrivateChannelCreateEventImpl(privateChannel);
+        Collection<Member> members = privateChannel.getRecipient().isPresent() && api.isUserCacheEnabled() ?
+                api.getEntityCache().get().getMemberCache().getMembersById(privateChannel.getRecipient().get().getId()) :
+                Collections.emptySet();
         api.getEventDispatcher()
-                .dispatchPrivateChannelCreateEvent(api, privateChannel.getRecipient().orElse(null), event);
+                .dispatchPrivateChannelCreateEvent(api, members,
+                        privateChannel.getRecipient().map(Collections::singleton).orElse(Collections.emptySet()),
+                        event);
         return privateChannel;
     }
 

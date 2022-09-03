@@ -74,6 +74,7 @@ public class MessageReactionRemoveHandler extends PacketHandler {
                 optionalServer.map(DispatchQueueSelector.class::cast).orElse(api),
                 messageId,
                 optionalServer.orElse(null),
+                optionalServer.flatMap(s -> s.getMemberById(userId)).orElse(null),
                 channel,
                 userId,
                 event);

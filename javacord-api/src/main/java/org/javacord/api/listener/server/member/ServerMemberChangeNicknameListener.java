@@ -10,7 +10,7 @@ import org.javacord.api.listener.user.UserAttachableListener;
  * This listener listens to member nickname changes.
  */
 @FunctionalInterface
-public interface ServerServerMemberChangeNicknameListener
+public interface ServerMemberChangeNicknameListener
         extends ServerMemberAttachableListener, ServerAttachableListener, UserAttachableListener,
                                                     GloballyAttachableListener, ObjectAttachableListener {
 

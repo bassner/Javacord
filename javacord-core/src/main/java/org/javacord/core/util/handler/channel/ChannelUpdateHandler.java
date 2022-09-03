@@ -521,6 +521,7 @@ public class ChannelUpdateHandler extends PacketHandler {
                 (entity instanceof Role) ? (Role) entity : null,
                 channel.getServer(),
                 channel,
+                (entity instanceof User) ? channel.getServer().getMemberById(entity.getId()).orElse(null) : null,
                 (entity instanceof User) ? (User) entity : null,
                 event);
     }

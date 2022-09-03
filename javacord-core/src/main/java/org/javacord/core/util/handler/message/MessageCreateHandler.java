@@ -86,6 +86,7 @@ public class MessageCreateHandler extends PacketHandler {
         api.getEventDispatcher().dispatchMessageCreateEvent(
                 optionalServer.map(DispatchQueueSelector.class::cast).orElse(api),
                 optionalServer.orElse(null),
+                author.asUser().flatMap(user -> optionalServer.flatMap(s -> s.getMemberById(user.getId()))).orElse(null),
                 channel,
                 author.asUser().orElse(null),
                 author.isWebhook() ? author.getId() : null,

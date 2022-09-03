@@ -3,6 +3,7 @@ package org.javacord.api.listener.channel.user;
 import org.javacord.api.event.channel.user.PrivateChannelCreateEvent;
 import org.javacord.api.listener.GloballyAttachableListener;
 import org.javacord.api.listener.ObjectAttachableListener;
+import org.javacord.api.listener.server.member.ServerMemberAttachableListener;
 import org.javacord.api.listener.user.UserAttachableListener;
 
 /**
@@ -10,7 +11,7 @@ import org.javacord.api.listener.user.UserAttachableListener;
  */
 @FunctionalInterface
 public interface PrivateChannelCreateListener extends UserAttachableListener, GloballyAttachableListener,
-        ObjectAttachableListener {
+        ObjectAttachableListener, ServerMemberAttachableListener {
 
     /**
      * This method is called every time a private channel is created.

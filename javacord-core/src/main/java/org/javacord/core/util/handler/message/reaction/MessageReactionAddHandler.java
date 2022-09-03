@@ -82,6 +82,7 @@ public class MessageReactionAddHandler extends PacketHandler {
                 server.map(DispatchQueueSelector.class::cast).orElse(api),
                 messageId,
                 server.orElse(null),
+                server.flatMap(s -> s.getMemberById(userId)).orElse(null),
                 channel,
                 userId,
                 event);

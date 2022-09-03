@@ -6,6 +6,7 @@ import org.javacord.api.listener.ObjectAttachableListener;
 import org.javacord.api.listener.channel.TextChannelAttachableListener;
 import org.javacord.api.listener.message.MessageAttachableListener;
 import org.javacord.api.listener.server.ServerAttachableListener;
+import org.javacord.api.listener.server.member.ServerMemberAttachableListener;
 import org.javacord.api.listener.user.UserAttachableListener;
 
 /**
@@ -13,7 +14,7 @@ import org.javacord.api.listener.user.UserAttachableListener;
  */
 @FunctionalInterface
 public interface ReactionAddListener extends ServerAttachableListener, UserAttachableListener,
-        TextChannelAttachableListener, MessageAttachableListener,
+        TextChannelAttachableListener, MessageAttachableListener, ServerMemberAttachableListener,
         GloballyAttachableListener, ObjectAttachableListener {
 
     /**
