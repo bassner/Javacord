@@ -52,10 +52,11 @@ public class ThreadDeleteHandler extends PacketHandler {
         api.getPossiblyUnreadyServerById(serverId)
                 .flatMap(server -> server.getThreadChannelById(channelId))
                 .ifPresent(this::dispatchThreadDeleteEvent);
-        api.removeObjectListeners(ServerThreadChannel.class, channelId);
-        api.removeObjectListeners(ServerChannel.class, channelId);
-        api.removeObjectListeners(TextChannel.class, channelId);
-        api.removeObjectListeners(Channel.class, channelId);
+        String channelIdAsString = String.valueOf(channelId);
+        api.removeObjectListeners(ServerThreadChannel.class, channelIdAsString);
+        api.removeObjectListeners(ServerChannel.class, channelIdAsString);
+        api.removeObjectListeners(TextChannel.class, channelIdAsString);
+        api.removeObjectListeners(Channel.class, channelIdAsString);
 
         api.removeChannelFromCache(channelId);
     }

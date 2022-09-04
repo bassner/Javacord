@@ -110,7 +110,7 @@ public class PresenceUpdateHandler extends PacketHandler {
         api.getEventDispatcher().dispatchUserChangeActivityEvent(
                 api,
                 user == null ? Collections.emptySet() : user.getMutualServers(),
-                user == null ? Collections.emptySet() : Collections.singleton(user),
+                user == null ? Collections.emptySet() : Collections.singleton(user.getId()),
                 event
         );
     }
@@ -139,7 +139,7 @@ public class PresenceUpdateHandler extends PacketHandler {
         api.getEventDispatcher().dispatchUserChangeStatusEvent(
                 api,
                 user == null ? Collections.emptySet() : user.getMutualServers(),
-                user == null ? Collections.emptySet() : Collections.singleton(user),
+                user == null ? Collections.emptySet() : Collections.singleton(user.getId()),
                 event
         );
     }

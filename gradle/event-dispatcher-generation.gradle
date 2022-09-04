@@ -165,15 +165,15 @@ project(':javacord-core') {
                     def objectClassName = objectClass.name
                     def objectClassVariableName = objectClassName.uncapitalize()
 
-                    if (it == webhookAttachableListener) {
-                        method.addParameter "Collection<Long>", "webhookIds"
+                    if (it == webhookAttachableListener || it == messageAttachableListener || it == userAttachableListener) {
+                        method.addParameter "Collection<Long>", "${objectClassVariableName}Ids"
                         method.javadocComment = method.javadocComment.orElseThrow { new AssertionError() }.content +
-                                "\n@param webhookIds The ids of the {@link Webhook}s."
+                                "\n@param ${objectClassVariableName}Ids The ids of the {@link ${objectClassName}}s."
                         body.addStatement """
-                            if (webhookIds != null) {
-                                webhookIds.stream()
-                                    .map(webhookId -> getApi().getObjectListeners(
-                                            Webhook.class, webhookId, ${listener.name}.class))
+                            if (${objectClassVariableName}Ids != null) {
+                                ${objectClassVariableName}Ids.stream()
+                                    .map(${objectClassVariableName}Id -> getApi().getObjectListeners(
+                                            ${objectClassName}.class, String.valueOf(${objectClassVariableName}Id), ${listener.name}.class))
                                     .forEach(listeners::addAll);
                             }
                         """
@@ -224,7 +224,7 @@ project(':javacord-core') {
                         objectBodies*.addStatement """
                             if (webhookId != null) {
                                 listeners.addAll(getApi().getObjectListeners(
-                                        Webhook.class, webhookId, ${listener.name}.class));
+                                        Webhook.class, String.valueOf(webhookId), ${listener.name}.class));
                             }
                         """
                     } else {
@@ -246,7 +246,7 @@ project(':javacord-core') {
                                 '\n@param userId The id of the {@link User}.'
                     }
                     idBodies*.addStatement """
-                        listeners.addAll(getApi().getObjectListeners(User.class, userId, ${listener.name}.class));
+                        listeners.addAll(getApi().getObjectListeners(User.class, String.valueOf(userId), ${listener.name}.class));
                     """
                 }
                 if (listener.interfacesExtended.typeDeclaration.contains(globallyAttachableListener)) {

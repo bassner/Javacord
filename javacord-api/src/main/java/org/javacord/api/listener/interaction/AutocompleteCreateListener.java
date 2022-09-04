@@ -5,14 +5,14 @@ import org.javacord.api.listener.GloballyAttachableListener;
 import org.javacord.api.listener.ObjectAttachableListener;
 import org.javacord.api.listener.channel.TextChannelAttachableListener;
 import org.javacord.api.listener.server.ServerAttachableListener;
-import org.javacord.api.listener.server.member.ServerMemberAttachableListener;
+import org.javacord.api.listener.server.member.MemberAttachableListener;
 import org.javacord.api.listener.user.UserAttachableListener;
 
 /**
  * This listener listens to autocomplete interaction creations.
  */
 @FunctionalInterface
-public interface AutocompleteCreateListener extends ServerMemberAttachableListener, ServerAttachableListener,
+public interface AutocompleteCreateListener extends MemberAttachableListener, ServerAttachableListener,
         UserAttachableListener, TextChannelAttachableListener, GloballyAttachableListener, ObjectAttachableListener {
 
     /**

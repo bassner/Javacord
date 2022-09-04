@@ -6,11 +6,11 @@ import org.javacord.api.DiscordApi;
 import org.javacord.api.entity.channel.ServerTextChannel;
 import org.javacord.api.entity.member.Member;
 import org.javacord.api.entity.permission.Role;
-import org.javacord.api.event.server.member.ServerMemberChangeNicknameEvent;
-import org.javacord.api.event.server.member.ServerMemberChangePendingEvent;
+import org.javacord.api.event.server.member.MemberChangeNicknameEvent;
+import org.javacord.api.event.server.member.MemberChangePendingEvent;
 import org.javacord.api.event.server.member.ServerMemberChangeServerAvatarEvent;
-import org.javacord.api.event.server.member.ServerMemberChangeTimeoutEvent;
-import org.javacord.api.event.server.role.UserRoleAddEvent;
+import org.javacord.api.event.server.member.MemberChangeTimeoutEvent;
+import org.javacord.api.event.server.role.MemberRoleAddEvent;
 import org.javacord.api.event.server.role.UserRoleRemoveEvent;
 import org.javacord.api.event.user.UserChangeAvatarEvent;
 import org.javacord.api.event.user.UserChangeDiscriminatorEvent;
@@ -18,11 +18,11 @@ import org.javacord.api.event.user.UserChangeNameEvent;
 import org.javacord.core.entity.member.MemberImpl;
 import org.javacord.core.entity.server.ServerImpl;
 import org.javacord.core.entity.user.UserImpl;
-import org.javacord.core.event.server.member.ServerMemberChangeNicknameEventImpl;
-import org.javacord.core.event.server.member.ServerMemberChangePendingEventImpl;
+import org.javacord.core.event.server.member.MemberChangeNicknameEventImpl;
+import org.javacord.core.event.server.member.MemberChangePendingEventImpl;
+import org.javacord.core.event.server.member.MemberChangeTimeoutEventImpl;
 import org.javacord.core.event.server.member.ServerMemberChangeServerAvatarEventImpl;
-import org.javacord.core.event.server.member.ServerMemberChangeTimeoutEventImpl;
-import org.javacord.core.event.server.role.UserRoleAddEventImpl;
+import org.javacord.core.event.server.role.MemberRoleAddEventImpl;
 import org.javacord.core.event.server.role.UserRoleRemoveEventImpl;
 import org.javacord.core.event.user.UserChangeAvatarEventImpl;
 import org.javacord.core.event.user.UserChangeDiscriminatorEventImpl;
@@ -78,16 +78,16 @@ public class GuildMemberUpdateHandler extends PacketHandler {
                     }
 
                     if (!newMember.getNickname().equals(oldMember.getNickname())) {
-                        ServerMemberChangeNicknameEvent event =
-                                new ServerMemberChangeNicknameEventImpl(newMember, oldMember);
+                        MemberChangeNicknameEvent event =
+                                new MemberChangeNicknameEventImpl(newMember, oldMember);
 
                         api.getEventDispatcher().dispatchServerMemberChangeNicknameEvent(
                                 server, server, newMember, newMember.getUser(), event);
                     }
 
                     if (!newMember.getTimeout().equals(oldMember.getTimeout())) {
-                        ServerMemberChangeTimeoutEvent event =
-                                new ServerMemberChangeTimeoutEventImpl(newMember, oldMember);
+                        MemberChangeTimeoutEvent event =
+                                new MemberChangeTimeoutEventImpl(newMember, oldMember);
 
                         api.getEventDispatcher().dispatchServerMemberChangeTimeoutEvent(
                                 server, server, newMember, newMember.getUser(), event);
@@ -102,8 +102,8 @@ public class GuildMemberUpdateHandler extends PacketHandler {
                     }
 
                     if (newMember.isPending() != oldMember.isPending()) {
-                        ServerMemberChangePendingEvent event =
-                                new ServerMemberChangePendingEventImpl(oldMember, newMember);
+                        MemberChangePendingEvent event =
+                                new MemberChangePendingEventImpl(oldMember, newMember);
 
                         api.getEventDispatcher().dispatchServerMemberChangePendingEvent(
                                 server, server, newMember, newMember.getUser(), event);
@@ -131,7 +131,7 @@ public class GuildMemberUpdateHandler extends PacketHandler {
                             if (role.isEveryoneRole()) {
                                 continue;
                             }
-                            UserRoleAddEvent event = new UserRoleAddEventImpl(role, newMember);
+                            MemberRoleAddEvent event = new MemberRoleAddEventImpl(role, newMember);
 
                             api.getEventDispatcher().dispatchUserRoleAddEvent((DispatchQueueSelector) role.getServer(),
                                     role, role.getServer(), newMember, newMember.getId(), event);
@@ -213,7 +213,7 @@ public class GuildMemberUpdateHandler extends PacketHandler {
         api.getEventDispatcher().dispatchUserChangeNameEvent(
                 api,
                 member.getUser().getMutualServers(),
-                Collections.singleton(member.getUser()),
+                Collections.singleton(member.getUser().getId()),
                 event
         );
     }
@@ -225,7 +225,7 @@ public class GuildMemberUpdateHandler extends PacketHandler {
         api.getEventDispatcher().dispatchUserChangeDiscriminatorEvent(
                 api,
                 member.getUser().getMutualServers(),
-                Collections.singleton(member.getUser()),
+                Collections.singleton(member.getUser().getId()),
                 event
         );
     }
@@ -236,7 +236,7 @@ public class GuildMemberUpdateHandler extends PacketHandler {
         api.getEventDispatcher().dispatchUserChangeAvatarEvent(
                 api,
                 member.getUser().getMutualServers(),
-                Collections.singleton(member.getUser()),
+                Collections.singleton(member.getUser().getId()),
                 event
         );
     }

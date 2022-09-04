@@ -225,7 +225,7 @@ public class ChannelCreateHandler extends PacketHandler {
                     api.getEntityCache().get().getMemberCache().getMembersById(recipient.getId())
                     : Collections.emptySet();
 
-            api.getEventDispatcher().dispatchPrivateChannelCreateEvent(api, members, Collections.singleton(recipient),
+            api.getEventDispatcher().dispatchPrivateChannelCreateEvent(api, members, Collections.singleton(recipient.getId()),
                     event);
         }
     }

@@ -83,4 +83,9 @@ public class ServerForumChannelImpl extends RegularServerChannelImpl
         return String.format("ServerForumChannel (id: %s, name: %s)", getIdAsString(), getName());
     }
 
+    // Override required to avoid deadly diamond of death
+    @Override
+    public String getIdForListenerManager() {
+        return InternalServerForumChannelAttachableListenerManager.super.getIdForListenerManager();
+    }
 }

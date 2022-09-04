@@ -18,6 +18,9 @@ import org.javacord.core.event.message.reaction.ReactionAddEventImpl;
 import org.javacord.core.util.event.DispatchQueueSelector;
 import org.javacord.core.util.gateway.PacketHandler;
 import org.javacord.core.util.logging.LoggerUtil;
+
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Optional;
 
 /**
@@ -78,13 +81,17 @@ public class MessageReactionAddHandler extends PacketHandler {
 
         ReactionAddEvent event = new ReactionAddEventImpl(api, messageId, channel, emoji, userId, member);
 
+        Collection<Member> members = serverId != null ?
+                (member != null ? Collections.singleton(member) : server.flatMap(s -> s.getMemberById(userId)).map(Collections::singleton).orElse(null))
+                : (api.isUserCacheEnabled() ? api.getEntityCache().get().getMemberCache().getMembersById(userId) : null);
+
         api.getEventDispatcher().dispatchReactionAddEvent(
                 server.map(DispatchQueueSelector.class::cast).orElse(api),
-                messageId,
-                server.orElse(null),
-                server.flatMap(s -> s.getMemberById(userId)).orElse(null),
-                channel,
-                userId,
+                Collections.singleton(messageId),
+                server.map(Collections::singleton).orElse(null),
+                members,
+                Collections.singleton(channel),
+                Collections.singleton(userId),
                 event);
     }
 

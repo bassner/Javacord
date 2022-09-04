@@ -18,7 +18,7 @@ import org.javacord.api.entity.user.User;
 import org.javacord.api.entity.user.UserFlag;
 import org.javacord.api.entity.user.UserLike;
 import org.javacord.api.entity.user.UserStatus;
-import org.javacord.api.listener.server.member.ServerMemberAttachableListenerManager;
+import org.javacord.api.listener.server.member.MemberAttachableListenerManager;
 import java.awt.Color;
 import java.time.Duration;
 import java.time.Instant;
@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 /**
  * A member of a server.
  */
-public interface Member extends UserLike, ServerMemberAttachableListenerManager {
+public interface Member extends UserLike, MemberAttachableListenerManager {
 
     @Override
     default String getMentionTag() {

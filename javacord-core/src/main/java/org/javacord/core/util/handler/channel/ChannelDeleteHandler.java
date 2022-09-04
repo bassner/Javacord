@@ -91,7 +91,7 @@ public class ChannelDeleteHandler extends PacketHandler {
      */
     private void handleUnknownServerChannel(JsonNode channelJson) {
         long serverId = channelJson.get("guild_id").asLong();
-        long channelId = channelJson.get("id").asLong();
+        String channelId = channelJson.get("id").asText();
         api.getPossiblyUnreadyServerById(serverId)
                 .flatMap(server -> server.getUnknownChannelById(channelId))
                 .ifPresent(this::dispatchServerChannelDeleteEvent);
@@ -107,7 +107,7 @@ public class ChannelDeleteHandler extends PacketHandler {
      */
     private void handleUnknownRegularServerChannel(JsonNode channelJson) {
         long serverId = channelJson.get("guild_id").asLong();
-        long channelId = channelJson.get("id").asLong();
+        String channelId = channelJson.get("id").asText();
         api.getPossiblyUnreadyServerById(serverId)
                 .flatMap(server -> server.getUnknownRegularChannelById(channelId))
                 .ifPresent(this::dispatchServerChannelDeleteEvent);
@@ -125,7 +125,7 @@ public class ChannelDeleteHandler extends PacketHandler {
      */
     private void handleCategory(JsonNode channelJson) {
         long serverId = channelJson.get("guild_id").asLong();
-        long channelId = channelJson.get("id").asLong();
+        String channelId = channelJson.get("id").asText();
         api.getPossiblyUnreadyServerById(serverId)
                 .flatMap(server -> server.getChannelCategoryById(channelId))
                 .ifPresent(this::dispatchServerChannelDeleteEvent);
@@ -151,11 +151,12 @@ public class ChannelDeleteHandler extends PacketHandler {
                             msg -> api.removeMessageFromCache(msg.getId())
                     );
                 });
-        api.removeObjectListeners(ServerTextChannel.class, channelId);
-        api.removeObjectListeners(RegularServerChannel.class, channelId);
-        api.removeObjectListeners(ServerChannel.class, channelId);
-        api.removeObjectListeners(TextChannel.class, channelId);
-        api.removeObjectListeners(Channel.class, channelId);
+        String channelIdAsString = String.valueOf(channelId);
+        api.removeObjectListeners(ServerTextChannel.class, channelIdAsString);
+        api.removeObjectListeners(RegularServerChannel.class, channelIdAsString);
+        api.removeObjectListeners(ServerChannel.class, channelIdAsString);
+        api.removeObjectListeners(TextChannel.class, channelIdAsString);
+        api.removeObjectListeners(Channel.class, channelIdAsString);
     }
 
     /**
@@ -169,10 +170,11 @@ public class ChannelDeleteHandler extends PacketHandler {
         api.getPossiblyUnreadyServerById(serverId)
                 .flatMap(server -> server.getForumChannelById(channelId))
                 .ifPresent(this::dispatchServerChannelDeleteEvent);
-        api.removeObjectListeners(ServerForumChannel.class, channelId);
-        api.removeObjectListeners(RegularServerChannel.class, channelId);
-        api.removeObjectListeners(ServerChannel.class, channelId);
-        api.removeObjectListeners(Channel.class, channelId);
+        String channelIdAsString = String.valueOf(channelId);
+        api.removeObjectListeners(ServerForumChannel.class, channelIdAsString);
+        api.removeObjectListeners(RegularServerChannel.class, channelIdAsString);
+        api.removeObjectListeners(ServerChannel.class, channelIdAsString);
+        api.removeObjectListeners(Channel.class, channelIdAsString);
     }
 
     /**
@@ -186,11 +188,12 @@ public class ChannelDeleteHandler extends PacketHandler {
         api.getPossiblyUnreadyServerById(serverId)
                 .flatMap(server -> server.getVoiceChannelById(channelId))
                 .ifPresent(this::dispatchServerChannelDeleteEvent);
-        api.removeObjectListeners(ServerVoiceChannel.class, channelId);
-        api.removeObjectListeners(RegularServerChannel.class, channelId);
-        api.removeObjectListeners(ServerChannel.class, channelId);
-        api.removeObjectListeners(VoiceChannel.class, channelId);
-        api.removeObjectListeners(Channel.class, channelId);
+        String channelIdAsString = String.valueOf(channelId);
+        api.removeObjectListeners(ServerVoiceChannel.class, channelIdAsString);
+        api.removeObjectListeners(RegularServerChannel.class, channelIdAsString);
+        api.removeObjectListeners(ServerChannel.class, channelIdAsString);
+        api.removeObjectListeners(VoiceChannel.class, channelIdAsString);
+        api.removeObjectListeners(Channel.class, channelIdAsString);
     }
 
     /**
@@ -204,12 +207,13 @@ public class ChannelDeleteHandler extends PacketHandler {
         api.getPossiblyUnreadyServerById(serverId)
                 .flatMap(server -> server.getStageVoiceChannelById(channelId))
                 .ifPresent(this::dispatchServerChannelDeleteEvent);
-        api.removeObjectListeners(ServerStageVoiceChannel.class, channelId);
-        api.removeObjectListeners(ServerVoiceChannel.class, channelId);
-        api.removeObjectListeners(RegularServerChannel.class, channelId);
-        api.removeObjectListeners(ServerChannel.class, channelId);
-        api.removeObjectListeners(VoiceChannel.class, channelId);
-        api.removeObjectListeners(Channel.class, channelId);
+        String channelIdAsString = String.valueOf(channelId);
+        api.removeObjectListeners(ServerStageVoiceChannel.class, channelIdAsString);
+        api.removeObjectListeners(ServerVoiceChannel.class, channelIdAsString);
+        api.removeObjectListeners(RegularServerChannel.class, channelIdAsString);
+        api.removeObjectListeners(ServerChannel.class, channelIdAsString);
+        api.removeObjectListeners(VoiceChannel.class, channelIdAsString);
+        api.removeObjectListeners(Channel.class, channelIdAsString);
     }
 
     /**

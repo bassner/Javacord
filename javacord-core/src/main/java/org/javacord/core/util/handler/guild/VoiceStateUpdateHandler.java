@@ -20,10 +20,10 @@ import org.javacord.core.entity.server.ServerImpl;
 import org.javacord.core.event.channel.server.voice.ServerVoiceChannelMemberJoinEventImpl;
 import org.javacord.core.event.channel.server.voice.ServerVoiceChannelMemberLeaveEventImpl;
 import org.javacord.core.event.server.VoiceStateUpdateEventImpl;
-import org.javacord.core.event.server.member.ServerMemberChangeDeafenedEventImpl;
-import org.javacord.core.event.server.member.ServerMemberChangeMutedEventImpl;
-import org.javacord.core.event.server.member.ServerMemberChangeSelfDeafenedEventImpl;
-import org.javacord.core.event.server.member.ServerMemberChangeSelfMutedEventImpl;
+import org.javacord.core.event.server.member.MemberChangeDeafenedEventImpl;
+import org.javacord.core.event.server.member.MemberChangeMutedEventImpl;
+import org.javacord.core.event.server.member.MemberChangeSelfDeafenedEventImpl;
+import org.javacord.core.event.server.member.MemberChangeSelfMutedEventImpl;
 import org.javacord.core.util.event.DispatchQueueSelector;
 import org.javacord.core.util.gateway.PacketHandler;
 import org.javacord.core.util.logging.LoggerUtil;
@@ -168,15 +168,15 @@ public class VoiceStateUpdateHandler extends PacketHandler {
                     }
 
                     if (newSelfMuted != oldSelfMuted) {
-                        ServerMemberChangeSelfMutedEventImpl
-                                event = new ServerMemberChangeSelfMutedEventImpl(newMember, oldMember);
+                        MemberChangeSelfMutedEventImpl
+                                event = new MemberChangeSelfMutedEventImpl(newMember, oldMember);
                         api.getEventDispatcher()
                                 .dispatchServerMemberChangeSelfMutedEvent(
                                         server, server, newMember, newMember.getUser(), event);
                     }
 
                     if (newSelfDeafened != oldSelfDeafened) {
-                        ServerMemberChangeSelfDeafenedEventImpl event = new ServerMemberChangeSelfDeafenedEventImpl(
+                        MemberChangeSelfDeafenedEventImpl event = new MemberChangeSelfDeafenedEventImpl(
                                 newMember, oldMember);
                         api.getEventDispatcher()
                                 .dispatchServerMemberChangeSelfDeafenedEvent(
@@ -184,16 +184,16 @@ public class VoiceStateUpdateHandler extends PacketHandler {
                     }
 
                     if (newMuted != oldMuted) {
-                        ServerMemberChangeMutedEventImpl
-                                event = new ServerMemberChangeMutedEventImpl(newMember, oldMember);
+                        MemberChangeMutedEventImpl
+                                event = new MemberChangeMutedEventImpl(newMember, oldMember);
                         api.getEventDispatcher()
                                 .dispatchServerMemberChangeMutedEvent(
                                         server, server, newMember, newMember.getUser(), event);
                     }
 
                     if (newDeafened != oldDeafened) {
-                        ServerMemberChangeDeafenedEventImpl
-                                event = new ServerMemberChangeDeafenedEventImpl(newMember, oldMember);
+                        MemberChangeDeafenedEventImpl
+                                event = new MemberChangeDeafenedEventImpl(newMember, oldMember);
                         api.getEventDispatcher()
                                 .dispatchServerMemberChangeDeafenedEvent(
                                         server, server, newMember, newMember.getUser(), event);

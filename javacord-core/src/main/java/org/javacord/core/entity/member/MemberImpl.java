@@ -12,7 +12,7 @@ import org.javacord.core.DiscordApiImpl;
 import org.javacord.core.entity.IconImpl;
 import org.javacord.core.entity.server.ServerImpl;
 import org.javacord.core.entity.user.UserImpl;
-import org.javacord.core.listener.server.member.InternalServerMemberAttachableListenerManager;
+import org.javacord.core.listener.server.member.InternalMemberAttachableListenerManager;
 import org.javacord.core.util.rest.RestEndpoint;
 import org.javacord.core.util.rest.RestMethod;
 import org.javacord.core.util.rest.RestRequest;
@@ -33,13 +33,14 @@ import java.util.stream.Collectors;
  *
  * @see <a href="https://discord.com/developers/docs/resources/guild#guild-member-object">Discord Docs</a>
  */
-public final class MemberImpl implements Member, InternalServerMemberAttachableListenerManager {
+public final class MemberImpl implements Member, InternalMemberAttachableListenerManager {
 
     private static final int DEFAULT_AVATAR_SIZE = 1024;
 
     private final DiscordApiImpl api;
     private final ServerImpl server;
     private final UserImpl user;
+    private final String combinedServerAndUserId;
     private final boolean pending;
     private final String nickname;
     private final List<Long> roleIds;
@@ -72,6 +73,7 @@ public final class MemberImpl implements Member, InternalServerMemberAttachableL
         } else {
             this.user = user;
         }
+        this.combinedServerAndUserId = server.getId() + "-" + this.user.getId();
 
         if (data.hasNonNull("nick")) {
             nickname = data.get("nick").asText();
@@ -122,6 +124,7 @@ public final class MemberImpl implements Member, InternalServerMemberAttachableL
         this.api = api;
         this.server = server;
         this.user = user;
+        this.combinedServerAndUserId = server.getId() + "-" + user.getId();
         this.nickname = nickname;
         this.roleIds = roleIds;
         this.avatarHash = avatarHash;
@@ -273,6 +276,11 @@ public final class MemberImpl implements Member, InternalServerMemberAttachableL
     @Override
     public long getId() {
         return user.getId();
+    }
+
+    @Override
+    public String getIdForListenerManager() {
+        return combinedServerAndUserId;
     }
 
     @Override

@@ -6,13 +6,13 @@ import org.javacord.api.listener.ObjectAttachableListener;
 import org.javacord.api.listener.channel.TextChannelAttachableListener;
 import org.javacord.api.listener.message.MessageAttachableListener;
 import org.javacord.api.listener.server.ServerAttachableListener;
-import org.javacord.api.listener.server.member.ServerMemberAttachableListener;
+import org.javacord.api.listener.server.member.MemberAttachableListener;
 import org.javacord.api.listener.user.UserAttachableListener;
 
 /**
  * This listener listens to message context menu interaction creations.
  */
-public interface MessageContextMenuCommandListener extends ServerMemberAttachableListener, ServerAttachableListener,
+public interface MessageContextMenuCommandListener extends MemberAttachableListener, ServerAttachableListener,
         UserAttachableListener, MessageAttachableListener, TextChannelAttachableListener, GloballyAttachableListener,
         ObjectAttachableListener {
 

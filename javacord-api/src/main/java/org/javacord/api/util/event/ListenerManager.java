@@ -45,7 +45,7 @@ public interface ListenerManager<T> {
      *
      * @return The id of the object, the listener was added to.
      */
-    Optional<Long> getAssignedObjectId();
+    Optional<String> getAssignedObjectId();
 
     /**
      * Removes the listener.

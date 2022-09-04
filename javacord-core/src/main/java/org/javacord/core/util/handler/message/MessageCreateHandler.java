@@ -3,21 +3,27 @@ package org.javacord.core.util.handler.message;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.Logger;
 import org.javacord.api.DiscordApi;
+import org.javacord.api.entity.DiscordEntity;
 import org.javacord.api.entity.channel.ServerChannel;
 import org.javacord.api.entity.channel.ServerTextChannel;
 import org.javacord.api.entity.channel.ServerThreadChannel;
 import org.javacord.api.entity.channel.TextChannel;
+import org.javacord.api.entity.member.Member;
 import org.javacord.api.entity.message.Message;
 import org.javacord.api.entity.message.MessageAuthor;
 import org.javacord.api.entity.message.MessageFlag;
 import org.javacord.api.entity.server.Server;
 import org.javacord.api.event.message.MessageCreateEvent;
 import org.javacord.core.entity.channel.PrivateChannelImpl;
+import org.javacord.core.entity.member.MemberImpl;
 import org.javacord.core.entity.user.UserImpl;
 import org.javacord.core.event.message.MessageCreateEventImpl;
 import org.javacord.core.util.event.DispatchQueueSelector;
 import org.javacord.core.util.gateway.PacketHandler;
 import org.javacord.core.util.logging.LoggerUtil;
+
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Optional;
 
 /**
@@ -83,13 +89,27 @@ public class MessageCreateHandler extends PacketHandler {
 
         Optional<Server> optionalServer = channel.asServerChannel().map(ServerChannel::getServer);
         MessageAuthor author = message.getAuthor();
+
+        Member member = new MemberImpl(api, optionalServer.get(), packet.get("member"), author.asUser())
+
+        Collection<Member> members = author
+                .asUser()
+                .flatMap(user -> optionalServer
+                        .map(server -> server.getMemberById(user.getId())
+
+                                .map(Collections::singleton))
+                        .orElseGet(() -> api.isUserCacheEnabled() ?
+                                Optional.of(api.getEntityCache().get().getMemberCache().getMembersById(user.getId()))
+                                : Optional.empty()))
+                .orElse(Collections.emptySet());
+
         api.getEventDispatcher().dispatchMessageCreateEvent(
                 optionalServer.map(DispatchQueueSelector.class::cast).orElse(api),
-                optionalServer.orElse(null),
-                author.asUser().flatMap(user -> optionalServer.flatMap(s -> s.getMemberById(user.getId()))).orElse(null),
-                channel,
-                author.asUser().orElse(null),
-                author.isWebhook() ? author.getId() : null,
+                optionalServer.map(Collections::singleton).orElse(null),
+                members,
+                Collections.singleton(channel),
+                author.asUser().map(DiscordEntity::getId).map(Collections::singleton).orElse(null),
+                author.isWebhook() ? Collections.singleton(author.getId()) : null,
                 event);
     }
 

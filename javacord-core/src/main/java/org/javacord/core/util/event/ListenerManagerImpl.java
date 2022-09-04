@@ -35,15 +35,15 @@ public class ListenerManagerImpl<T> implements ListenerManager<T> {
 
     /**
      * The class of the object, the listener was added to.
-     * <code>Null</code> if it's a global listener.
+     * <code>null</code> if it's a global listener.
      */
     private final Class<?> assignedObjectClass;
 
     /**
      * The id of the object, the listener was added to.
-     * <code>-1</code> if it's a global listener.
+     * <code>null</code> if it's a global listener.
      */
-    private final long objectId;
+    private final String objectId;
 
     /**
      * The remove handlers.
@@ -58,7 +58,7 @@ public class ListenerManagerImpl<T> implements ListenerManager<T> {
      * @param listenerClass The class of the listener to manage.
      */
     public ListenerManagerImpl(DiscordApi api, T listener, Class<T> listenerClass) {
-        this(api, listener, listenerClass, null, -1);
+        this(api, listener, listenerClass, null, null);
     }
 
     /**
@@ -71,7 +71,7 @@ public class ListenerManagerImpl<T> implements ListenerManager<T> {
      * @param objectId The id of the object, the listener was added to.
      */
     public ListenerManagerImpl(
-            DiscordApi api, T listener, Class<T> listenerClass, Class<?> assignedObjectClass, long objectId) {
+            DiscordApi api, T listener, Class<T> listenerClass, Class<?> assignedObjectClass, String objectId) {
         this.api = (DiscordApiImpl) api;
         this.listener = listener;
         this.listenerClass = listenerClass;
@@ -107,7 +107,7 @@ public class ListenerManagerImpl<T> implements ListenerManager<T> {
     }
 
     @Override
-    public Optional<Long> getAssignedObjectId() {
+    public Optional<String> getAssignedObjectId() {
         if (isGlobalListener()) {
             return Optional.empty();
         }

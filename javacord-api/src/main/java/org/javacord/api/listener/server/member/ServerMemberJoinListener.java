@@ -1,6 +1,6 @@
 package org.javacord.api.listener.server.member;
 
-import org.javacord.api.event.server.member.ServerMemberJoinEvent;
+import org.javacord.api.event.server.member.MemberJoinEvent;
 import org.javacord.api.listener.GloballyAttachableListener;
 import org.javacord.api.listener.ObjectAttachableListener;
 import org.javacord.api.listener.server.ServerAttachableListener;
@@ -21,5 +21,5 @@ public interface ServerMemberJoinListener extends ServerAttachableListener, User
      *
      * @param event The event.
      */
-    void onServerMemberJoin(ServerMemberJoinEvent event);
+    void onMemberJoin(MemberJoinEvent event);
 }

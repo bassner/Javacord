@@ -47,7 +47,7 @@ public class GuildDeleteHandler extends PacketHandler {
 
             api.getEventDispatcher().dispatchServerLeaveEvent((DispatchQueueSelector) server, server, event);
         });
-        api.removeObjectListeners(Server.class, serverId);
+        api.removeObjectListeners(Server.class, String.valueOf(serverId));
         api.forEachCachedMessageWhere(
                 msg -> msg.getServer().map(s -> s.getId() == serverId).orElse(false),
                 msg -> api.removeMessageFromCache(msg.getId())

@@ -170,7 +170,7 @@ public class PrivateChannelImpl implements PrivateChannel, Cleanupable, Internal
                 Collections.emptySet();
         api.getEventDispatcher()
                 .dispatchPrivateChannelCreateEvent(api, members,
-                        privateChannel.getRecipient().map(Collections::singleton).orElse(Collections.emptySet()),
+                        privateChannel.getRecipient().map(DiscordEntity::getId).map(Collections::singleton).orElse(Collections.emptySet()),
                         event);
         return privateChannel;
     }

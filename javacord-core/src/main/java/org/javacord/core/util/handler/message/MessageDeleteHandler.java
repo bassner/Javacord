@@ -56,7 +56,7 @@ public class MessageDeleteHandler extends PacketHandler {
                     optionalServer.orElse(null),
                     channel,
                     event);
-            api.removeObjectListeners(Message.class, messageId);
+            api.removeObjectListeners(Message.class, String.valueOf(messageId));
         } else {
             LoggerUtil.logMissingChannel(logger, channelId, packet);
         }

@@ -407,7 +407,7 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
      * The key of the third inner map is the listener itself.
      * The final value is the listener manager.
      */
-    private final Map<Class<?>, Map<Long, Map<Class<? extends ObjectAttachableListener>,
+    private final Map<Class<?>, Map<String, Map<Class<? extends ObjectAttachableListener>,
             Map<ObjectAttachableListener, ListenerManagerImpl<? extends ObjectAttachableListener>>>>>
             objectListeners = Collections.synchronizedMap(new ConcurrentHashMap<>());
 
@@ -1240,7 +1240,7 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
      */
     @SuppressWarnings("unchecked")
     public <T extends ObjectAttachableListener> ListenerManager<T> addObjectListener(
-            Class<?> objectClass, long objectId, Class<T> listenerClass, T listener) {
+            Class<?> objectClass, String objectId, Class<T> listenerClass, T listener) {
         Map<ObjectAttachableListener, ListenerManagerImpl<? extends ObjectAttachableListener>> listeners =
                 objectListeners
                         .computeIfAbsent(objectClass, key -> new ConcurrentHashMap<>())
@@ -1260,12 +1260,12 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
      * @param <T>           The type of the listener.
      */
     public <T extends ObjectAttachableListener> void removeObjectListener(
-            Class<?> objectClass, long objectId, Class<T> listenerClass, T listener) {
+            Class<?> objectClass, String objectId, Class<T> listenerClass, T listener) {
         synchronized (objectListeners) {
             if (objectClass == null) {
                 return;
             }
-            Map<Long, Map<Class<? extends ObjectAttachableListener>, Map<ObjectAttachableListener,
+            Map<String, Map<Class<? extends ObjectAttachableListener>, Map<ObjectAttachableListener,
                     ListenerManagerImpl<? extends ObjectAttachableListener>>>> objectListener =
                     objectListeners.get(objectClass);
             if (objectListener == null) {
@@ -1306,12 +1306,12 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
      * @param objectClass The class of the object.
      * @param objectId    The id of the object.
      */
-    public void removeObjectListeners(Class<?> objectClass, long objectId) {
+    public void removeObjectListeners(Class<?> objectClass, String objectId) {
         if (objectClass == null) {
             return;
         }
         synchronized (objectListeners) {
-            Map<Long, Map<Class<? extends ObjectAttachableListener>,
+            Map<String, Map<Class<? extends ObjectAttachableListener>,
                     Map<ObjectAttachableListener, ListenerManagerImpl<? extends ObjectAttachableListener>>>>
                     objects = objectListeners.get(objectClass);
             if (objects == null) {
@@ -1344,7 +1344,7 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
      */
     @SuppressWarnings("unchecked")
     public <T extends ObjectAttachableListener> Map<T, List<Class<T>>> getObjectListeners(
-            Class<?> objectClass, long objectId) {
+            Class<?> objectClass, String objectId) {
         return Collections.unmodifiableMap(Optional.ofNullable(objectClass)
                 .map(objectListeners::get)
                 .map(objectListener -> objectListener.get(objectId))
@@ -1373,7 +1373,7 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
      */
     @SuppressWarnings("unchecked")
     public <T extends ObjectAttachableListener> List<T> getObjectListeners(
-            Class<?> objectClass, long objectId, Class<T> listenerClass) {
+            Class<?> objectClass, String objectId, Class<T> listenerClass) {
         return Collections.unmodifiableList((List<T>) Optional.ofNullable(objectClass)
                 .map(objectListeners::get)
                 .map(objectListener -> objectListener.get(objectId))
