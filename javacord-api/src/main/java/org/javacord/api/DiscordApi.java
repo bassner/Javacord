@@ -943,7 +943,9 @@ public interface DiscordApi extends GloballyAttachableListenerManager {
         try {
             return getUserById(Long.parseLong(id));
         } catch (NumberFormatException e) {
-            return getUserById(-1);
+            CompletableFuture<User> future = new CompletableFuture<>();
+            future.completeExceptionally(e);
+            return future;
         }
     }
 
@@ -1415,7 +1417,7 @@ public interface DiscordApi extends GloballyAttachableListenerManager {
         try {
             return getStickerById(Long.parseLong(id));
         } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("The id must be a number!");
+            return Optional.empty();
         }
     }
 
@@ -1437,7 +1439,9 @@ public interface DiscordApi extends GloballyAttachableListenerManager {
         try {
             return requestStickerById(Long.parseLong(id));
         } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("The ID must be a number!");
+            CompletableFuture<Sticker> future = new CompletableFuture<>();
+            future.completeExceptionally(exception);
+            return future;
         }
     }
 
