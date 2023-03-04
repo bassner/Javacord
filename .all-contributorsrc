@@ -127,10 +127,29 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "Lainika",
+      "name": "Lainika",
+      "avatar_url": "https://avatars.githubusercontent.com/u/79374825?v=4",
+      "profile": "https://github.com/Lainika",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "haseeb-xd",
+      "name": "Haseeb Ansari",
+      "avatar_url": "https://avatars.githubusercontent.com/u/47222685?v=4",
+      "profile": "https://www.linkedin.com/in/haseebansari/",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "projectName": "Javacord",
   "projectOwner": "Javacord",
   "repoType": "github",
-  "repoHost": "https://github.com"
+  "repoHost": "https://github.com",
+  "commitConvention": "angular"
 }
