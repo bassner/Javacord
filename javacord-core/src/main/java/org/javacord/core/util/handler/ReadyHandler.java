@@ -30,6 +30,8 @@ public class ReadyHandler extends PacketHandler {
         // Purge the cache first
         api.purgeCache();
 
+        api.setYourself(new UserImpl(api, packet.get("user"), (MemberImpl) null, null));
+
         JsonNode guilds = packet.get("guilds");
         for (JsonNode guildJson : guilds) {
             if (guildJson.has("unavailable") && guildJson.get("unavailable").asBoolean()) {
@@ -38,8 +40,6 @@ public class ReadyHandler extends PacketHandler {
             }
             new ServerImpl(api, guildJson);
         }
-
-        api.setYourself(new UserImpl(api, packet.get("user"), (MemberImpl) null, null));
     }
 
 }

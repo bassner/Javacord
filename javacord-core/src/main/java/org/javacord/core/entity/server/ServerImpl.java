@@ -101,6 +101,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
@@ -285,32 +286,32 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
      * True if the server widget is enabled.
      */
     private volatile boolean widgetEnabled;
-    
+
     /**
      * The channel id that the widget will generate an invite to, or null if set to no invite.
      */
     private volatile Long widgetChannelId;
-    
+
     /**
      * The maximum number of presences for the guild (null is always returned, apart from the largest of guilds).
      */
     private volatile Integer maxPresences;
-    
+
     /**
      * The maximum number of members for the guild.
      */
     private volatile Integer maxMembers;
-    
+
     /**
      * The maximum amount of users in a video channel.
      */
     private volatile Integer maxVideoChannelUsers;
-    
+
     /**
      * The welcome screen of a community server, shown to new members.
      */
     private volatile WelcomeScreen welcomeScreen;
-    
+
     /**
      * Whether the server's boost progress bar is enabled or not.
      */
@@ -319,10 +320,12 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
     /**
      * The enum set of all server system channel flags.
      */
-    private final EnumSet<SystemChannelFlag> systemChannelFlags = 
+    private final EnumSet<SystemChannelFlag> systemChannelFlags =
             EnumSet.noneOf(SystemChannelFlag.class);
-    
-    
+
+    private Future<?> readyConsumerFuture;
+
+
     /**
      * Creates a new server object.
      *
@@ -557,16 +560,16 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
         }
 
         this.widgetEnabled = data.path("widget_enabled").asBoolean(false);
-        this.widgetChannelId = data.hasNonNull("widget_channel_id") 
-                            ? data.get("widget_channel_id").asLong() : null;
-        this.maxPresences = data.hasNonNull("max_presences") 
-                            ? data.get("max_presences").asInt() : null;
-        this.maxMembers = data.hasNonNull("max_members") 
-                            ? data.get("max_members").asInt() : null;
-        this.maxVideoChannelUsers = data.hasNonNull("max_video_channel_users") 
-                            ? data.get("max_video_channel_users").asInt() : null;
+        this.widgetChannelId = data.hasNonNull("widget_channel_id")
+                ? data.get("widget_channel_id").asLong() : null;
+        this.maxPresences = data.hasNonNull("max_presences")
+                ? data.get("max_presences").asInt() : null;
+        this.maxMembers = data.hasNonNull("max_members")
+                ? data.get("max_members").asInt() : null;
+        this.maxVideoChannelUsers = data.hasNonNull("max_video_channel_users")
+                ? data.get("max_video_channel_users").asInt() : null;
         this.premiumProgressBarEnabled = data.path("premium_progress_bar_enabled").asBoolean(false);
-        
+
         api.addServerToCache(this);
     }
 
@@ -973,13 +976,41 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
         api.addMemberToCacheOrReplaceExisting(member);
 
         synchronized (readyConsumers) {
-            if (!ready && getRealMembers().size() == getMemberCount()) {
+            if (readyConsumerFuture != null) {
+                readyConsumerFuture.cancel(false);
+                readyConsumerFuture = null;
+            }
+
+            int realMemSize = getRealMembers().size();
+            int memCount = getMemberCount();
+            if (!ready && realMemSize == memCount) {
+                dispatchReadyConsumers();
+            } else if (!ready && realMemSize >= Math.floor(memCount * 0.5D)) {
+                readyConsumerFuture = api.getThreadPool().getScheduler().schedule(() -> {
+                    if (!ready) {
+                        logger.warn("More than one minute passed after the last member was added for non-ready server "
+                        + getIdAsString() + ". We assume that no more will come, so we set it ready. Members cached:" +
+                                realMemSize + " of " + memCount + " (" +
+                                (((realMemSize * 1D) / memCount * 1000D) / 10D) + "%)");
+                        synchronized (readyConsumers) {
+                            dispatchReadyConsumers();
+                            readyConsumerFuture = null;
+                        }
+                    }
+                }, 1, TimeUnit.MINUTES);
+            }
+        }
+        return member;
+    }
+
+    private void dispatchReadyConsumers() {
+        synchronized (readyConsumers) {
+            if (!ready) {
                 ready = true;
                 readyConsumers.forEach(consumer -> consumer.accept(this));
                 readyConsumers.clear();
             }
         }
-        return member;
     }
 
     /**
@@ -2064,7 +2095,7 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
     public String toString() {
         return String.format("Server (id: %s, name: %s)", getIdAsString(), getName());
     }
-    
+
     @Override
     public EnumSet<SystemChannelFlag> getSystemChannelFlags() {
         return EnumSet.copyOf(systemChannelFlags);
