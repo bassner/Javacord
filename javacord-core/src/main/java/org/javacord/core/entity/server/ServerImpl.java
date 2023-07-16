@@ -44,6 +44,7 @@ import org.javacord.api.entity.server.SystemChannelFlag;
 import org.javacord.api.entity.server.VerificationLevel;
 import org.javacord.api.entity.server.invite.RichInvite;
 import org.javacord.api.entity.server.invite.WelcomeScreen;
+import org.javacord.api.entity.server.scheduledevent.ServerScheduledEvent;
 import org.javacord.api.entity.sticker.Sticker;
 import org.javacord.api.entity.user.User;
 import org.javacord.api.entity.user.UserStatus;
@@ -68,6 +69,7 @@ import org.javacord.core.entity.channel.UnknownServerChannelImpl;
 import org.javacord.core.entity.permission.RoleImpl;
 import org.javacord.core.entity.server.invite.InviteImpl;
 import org.javacord.core.entity.server.invite.WelcomeScreenImpl;
+import org.javacord.core.entity.server.scheduledevent.ServerScheduledEventImpl;
 import org.javacord.core.entity.sticker.StickerImpl;
 import org.javacord.core.entity.user.Member;
 import org.javacord.core.entity.user.MemberImpl;
@@ -239,6 +241,11 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
     private final ConcurrentHashMap<Long, Sticker> stickers = new ConcurrentHashMap<>();
 
     /**
+     * The scheduled events for this server.
+     */
+    private final Map<Long, ServerScheduledEvent> scheduledEvents = new ConcurrentHashMap<>();
+
+    /**
      * The premium tier level of the server.
      */
     private volatile BoostLevel boostLevel;
@@ -392,6 +399,12 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
         if (data.hasNonNull("system_channel_flags")) {
             int systemChannelFlag = data.get("system_channel_flags").asInt();
             setSystemChannelFlag(systemChannelFlag);
+        }
+
+        if (data.has("guild_scheduled_events")) {
+            for (JsonNode event : data.get("guild_scheduled_events")) {
+                addScheduledEvent(new ServerScheduledEventImpl(api, event));
+            }
         }
 
         if (data.has("channels")) {
@@ -561,13 +574,13 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
 
         this.widgetEnabled = data.path("widget_enabled").asBoolean(false);
         this.widgetChannelId = data.hasNonNull("widget_channel_id")
-                ? data.get("widget_channel_id").asLong() : null;
+                            ? data.get("widget_channel_id").asLong() : null;
         this.maxPresences = data.hasNonNull("max_presences")
-                ? data.get("max_presences").asInt() : null;
+                            ? data.get("max_presences").asInt() : null;
         this.maxMembers = data.hasNonNull("max_members")
-                ? data.get("max_members").asInt() : null;
+                            ? data.get("max_members").asInt() : null;
         this.maxVideoChannelUsers = data.hasNonNull("max_video_channel_users")
-                ? data.get("max_video_channel_users").asInt() : null;
+                            ? data.get("max_video_channel_users").asInt() : null;
         this.premiumProgressBarEnabled = data.path("premium_progress_bar_enabled").asBoolean(false);
 
         api.addServerToCache(this);
@@ -1491,6 +1504,60 @@ public class ServerImpl implements Server, Cleanupable, InternalServerAttachable
                         invites.add(new InviteImpl(getApi(), inviteJson));
                     }
                     return Collections.unmodifiableSet(invites);
+                });
+    }
+
+    /**
+     * Add a scheduled event to the server.
+     *
+     * @param scheduledEvent The scheduled event to add.
+     */
+    public void addScheduledEvent(final ServerScheduledEvent scheduledEvent) {
+        scheduledEvents.put(scheduledEvent.getId(), scheduledEvent);
+    }
+
+    /**
+     * Remove a scheduled event from the server.
+     *
+     * @param scheduledEventId The id of the scheduled event to remove.
+     */
+    public void removeScheduledEvent(final long scheduledEventId) {
+        scheduledEvents.remove(scheduledEventId);
+    }
+
+    @Override
+    public Set<ServerScheduledEvent> getScheduledEvents() {
+        //TODO: Throw a warning if the intent is not set
+        return Collections.unmodifiableSet(new HashSet<>(scheduledEvents.values()));
+    }
+
+    @Override
+    public Optional<ServerScheduledEvent> getScheduledEventById(final long eventId) {
+        //TODO: Throw a warning if the intent is not set
+        return Optional.ofNullable(scheduledEvents.getOrDefault(eventId, null));
+    }
+
+    @Override
+    public CompletableFuture<ServerScheduledEvent> requestScheduledEventById(final long eventId,
+                                                                             final boolean includeUserCount) {
+        return new RestRequest<ServerScheduledEvent>(getApi(), RestMethod.GET, RestEndpoint.SCHEDULED_EVENTS)
+                .setUrlParameters(getIdAsString())
+                .setUrlParameters(String.valueOf(eventId))
+                .addQueryParameter("with_user_count", String.valueOf(includeUserCount))
+                .execute(result -> new ServerScheduledEventImpl(api, result.getJsonBody()));
+    }
+
+    @Override
+    public CompletableFuture<Set<ServerScheduledEvent>> requestScheduledEvents(boolean includeUserCount) {
+        return new RestRequest<Set<ServerScheduledEvent>>(getApi(), RestMethod.GET, RestEndpoint.SCHEDULED_EVENTS)
+                .setUrlParameters(getIdAsString())
+                .addQueryParameter("with_user_count", String.valueOf(includeUserCount))
+                .execute(result -> {
+                    Set<ServerScheduledEvent> events = new HashSet<>();
+                    for (JsonNode eventJson : result.getJsonBody()) {
+                        events.add(new ServerScheduledEventImpl(api, eventJson));
+                    }
+                    return Collections.unmodifiableSet(events);
                 });
     }
 

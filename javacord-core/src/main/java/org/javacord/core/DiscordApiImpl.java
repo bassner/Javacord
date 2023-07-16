@@ -1044,7 +1044,7 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
      *
      * @param serverId The id of the server.
      */
-    private void removeUnavailableServerFromCache(long serverId) {
+    public void removeUnavailableServerFromCache(long serverId) {
         unavailableServers.remove(serverId);
     }
 
