@@ -2185,6 +2185,7 @@ public interface DiscordApi extends GloballyAttachableListenerManager {
             return Optional.empty();
         }
     }
+
     /**
      * Sets the DM interaction listener. Useful to expose DM interactions to forward them elsewhere.
      *
