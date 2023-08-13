@@ -243,8 +243,7 @@ public class InteractionCreateHandler extends PacketHandler {
                 }
                 break;
             case APPLICATION_COMMAND_AUTOCOMPLETE:
-                AutocompleteCreateEvent autocompleteCreateEvent =
-                        new AutocompleteCreateEventImpl(interaction);
+                AutocompleteCreateEvent autocompleteCreateEvent = new AutocompleteCreateEventImpl(interaction);
                 api.getEventDispatcher().dispatchAutocompleteCreateEvent(
                         server == null ? api : server,
                         server,
