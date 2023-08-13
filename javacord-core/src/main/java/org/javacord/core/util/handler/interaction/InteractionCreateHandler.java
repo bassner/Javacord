@@ -76,190 +76,193 @@ public class InteractionCreateHandler extends PacketHandler {
     public void handle(JsonNode packet, boolean injected) {
         try {
             lock.lock();
+            handleInternal(packet, injected);
+        } finally {
+            lock.unlock();
+        }
+    }
 
-            // If it has user, it's from a DM. Time to relay it!
-            if (!injected && packet.hasNonNull("user")) {
-                dmListener.accept(packet);
-                // We return. It will be reinjected, and for testing purposes on a single shard
-                return;
+    private void handleInternal(JsonNode packet, boolean injected) {
+        // If it has user, it's from a DM. Time to relay it!
+        if (!injected && packet.hasNonNull("user")) {
+            dmListener.accept(packet);
+            // We return. It will be reinjected, and for testing purposes on a single shard
+            return;
+        }
+
+        TextChannel channel = null;
+        if (packet.hasNonNull("channel")) {
+            long channelId = packet.get("channel").get("id").asLong();
+
+            // Check if this interaction comes from a guild or a DM
+            if (packet.hasNonNull("guild_id")) {
+                channel = api.getTextChannelById(channelId).orElse(null);
+            } else {
+                UserImpl user = new UserImpl(api, packet.get("user"), (MemberImpl) null, null);
+                channel = PrivateChannelImpl.getOrCreatePrivateChannel(api, channelId, user.getId(), user);
             }
+        }
 
-            TextChannel channel = null;
-            if (packet.hasNonNull("channel")) {
-                long channelId = packet.get("channel").get("id").asLong();
+        int typeId = packet.get("type").asInt();
+        final InteractionType interactionType = InteractionType.fromValue(typeId);
+        ComponentType componentType = null;
 
-                // Check if this interaction comes from a guild or a DM
-                if (packet.hasNonNull("guild_id")) {
-                    channel = api.getTextChannelById(channelId).orElse(null);
-                } else {
-                    UserImpl user = new UserImpl(api, packet.get("user"), (MemberImpl) null, null);
-                    channel = PrivateChannelImpl.getOrCreatePrivateChannel(api, channelId, user.getId(), user);
-                }
-            }
-
-            int typeId = packet.get("type").asInt();
-            final InteractionType interactionType = InteractionType.fromValue(typeId);
-            ComponentType componentType = null;
-
-            InteractionImpl interaction;
-            switch (interactionType) {
-                case APPLICATION_COMMAND:
-                    int applicationCommandTypeId = packet.get("data").get("type").asInt();
-                    ApplicationCommandType applicationCommandType =
-                            ApplicationCommandType.fromValue(applicationCommandTypeId);
-                    switch (applicationCommandType) {
-                        case SLASH:
-                            interaction = new SlashCommandInteractionImpl(api, channel, packet);
-                            break;
-                        case USER:
-                            interaction = new UserContextMenuInteractionImpl(api, channel, packet);
-                            break;
-                        case MESSAGE:
-                            interaction = new MessageContextMenuInteractionImpl(api, channel, packet);
-                            break;
-                        default:
-                            logger.info("Got application command interaction of unknown type <{}>. "
-                                    + "Please contact the developer!", applicationCommandTypeId);
-                            return;
-                    }
-                    break;
-                case MESSAGE_COMPONENT:
-                    final int componentTypeId = packet.get("data").get("component_type").asInt();
-                    componentType = ComponentType.fromId(componentTypeId);
-
-                    if (componentType == ComponentType.BUTTON) {
-                        interaction = new ButtonInteractionImpl(api, channel, packet);
-                    } else if (componentType.isSelectMenuType()) {
-                        interaction = new SelectMenuInteractionImpl(api, channel, packet);
-                    } else {
-                        logger.warn("Received message component interaction of unknown type <{}>. "
-                                + "Please contact the developer!", componentTypeId);
+        InteractionImpl interaction;
+        switch (interactionType) {
+            case APPLICATION_COMMAND:
+                int applicationCommandTypeId = packet.get("data").get("type").asInt();
+                ApplicationCommandType applicationCommandType =
+                        ApplicationCommandType.fromValue(applicationCommandTypeId);
+                switch (applicationCommandType) {
+                    case SLASH:
+                        interaction = new SlashCommandInteractionImpl(api, channel, packet);
+                        break;
+                    case USER:
+                        interaction = new UserContextMenuInteractionImpl(api, channel, packet);
+                        break;
+                    case MESSAGE:
+                        interaction = new MessageContextMenuInteractionImpl(api, channel, packet);
+                        break;
+                    default:
+                        logger.info("Got application command interaction of unknown type <{}>. "
+                                + "Please contact the developer!", applicationCommandTypeId);
                         return;
-                    }
-                    break;
-                case APPLICATION_COMMAND_AUTOCOMPLETE:
-                    interaction = new AutocompleteInteractionImpl(api, channel, packet);
-                    break;
-                case MODAL_SUBMIT:
-                    interaction = new ModalInteractionImpl(api, channel, packet);
-                    break;
-                default:
-                    logger.warn("Received interaction of unknown type <{}>. "
-                            + "Please contact the developer!", typeId);
+                }
+                break;
+            case MESSAGE_COMPONENT:
+                final int componentTypeId = packet.get("data").get("component_type").asInt();
+                componentType = ComponentType.fromId(componentTypeId);
+
+                if (componentType == ComponentType.BUTTON) {
+                    interaction = new ButtonInteractionImpl(api, channel, packet);
+                } else if (componentType.isSelectMenuType()) {
+                    interaction = new SelectMenuInteractionImpl(api, channel, packet);
+                } else {
+                    logger.warn("Received message component interaction of unknown type <{}>. "
+                            + "Please contact the developer!", componentTypeId);
                     return;
-            }
-            InteractionCreateEvent event = new InteractionCreateEventImpl(interaction);
+                }
+                break;
+            case APPLICATION_COMMAND_AUTOCOMPLETE:
+                interaction = new AutocompleteInteractionImpl(api, channel, packet);
+                break;
+            case MODAL_SUBMIT:
+                interaction = new ModalInteractionImpl(api, channel, packet);
+                break;
+            default:
+                logger.warn("Received interaction of unknown type <{}>. "
+                        + "Please contact the developer!", typeId);
+                return;
+        }
+        InteractionCreateEvent event = new InteractionCreateEventImpl(interaction);
 
-            ServerImpl server = (ServerImpl) interaction.getServer().orElse(null);
+        ServerImpl server = (ServerImpl) interaction.getServer().orElse(null);
 
-            api.getEventDispatcher().dispatchInteractionCreateEvent(
-                    server == null ? api : server,
-                    server,
-                    interaction.getChannel().orElse(null),
-                    interaction.getUser(),
-                    event);
+        api.getEventDispatcher().dispatchInteractionCreateEvent(
+                server == null ? api : server,
+                server,
+                interaction.getChannel().orElse(null),
+                interaction.getUser(),
+                event);
 
-            switch (interactionType) {
-                case APPLICATION_COMMAND:
-                    int applicationCommandTypeId = packet.get("data").get("type").asInt();
-                    ApplicationCommandType applicationCommandType =
-                            ApplicationCommandType.fromValue(applicationCommandTypeId);
-                    switch (applicationCommandType) {
-                        case SLASH:
-                            SlashCommandCreateEvent slashCommandCreateEvent =
-                                    new SlashCommandCreateEventImpl(interaction);
-                            api.getEventDispatcher().dispatchSlashCommandCreateEvent(
-                                    server == null ? api : server,
-                                    server,
-                                    interaction.getChannel().orElse(null),
-                                    interaction.getUser(),
-                                    slashCommandCreateEvent);
-                            break;
-                        case USER:
-                            UserContextMenuCommandEvent userContextMenuCommandEvent =
-                                    new UserContextMenuCommandEventImpl(interaction);
-                            api.getEventDispatcher().dispatchUserContextMenuCommandEvent(
-                                    server,
-                                    server,
-                                    interaction.getChannel().orElse(null),
-                                    interaction.getUser(),
-                                    userContextMenuCommandEvent);
-                            break;
-                        case MESSAGE:
-                            MessageContextMenuCommandEvent messageContextMenuCommandEvent =
-                                    new MessageContextMenuCommandEventImpl(interaction);
-                            api.getEventDispatcher().dispatchMessageContextMenuCommandEvent(
-                                    server,
-                                    interaction.asMessageContextMenuInteraction().orElseThrow(AssertionError::new)
-                                            .getTarget().getId(),
-                                    server,
-                                    interaction.getChannel().orElse(null),
-                                    interaction.getUser(),
-                                    messageContextMenuCommandEvent);
-                            break;
-                        default:
-                            logger.info("Got application command interaction of unknown type <{}>. "
-                                    + "Please contact the developer!", applicationCommandTypeId);
-                            return;
-                    }
+        switch (interactionType) {
+            case APPLICATION_COMMAND:
+                int applicationCommandTypeId = packet.get("data").get("type").asInt();
+                ApplicationCommandType applicationCommandType =
+                        ApplicationCommandType.fromValue(applicationCommandTypeId);
+                switch (applicationCommandType) {
+                    case SLASH:
+                        SlashCommandCreateEvent slashCommandCreateEvent =
+                                new SlashCommandCreateEventImpl(interaction);
+                        api.getEventDispatcher().dispatchSlashCommandCreateEvent(
+                                server == null ? api : server,
+                                server,
+                                interaction.getChannel().orElse(null),
+                                interaction.getUser(),
+                                slashCommandCreateEvent);
+                        break;
+                    case USER:
+                        UserContextMenuCommandEvent userContextMenuCommandEvent =
+                                new UserContextMenuCommandEventImpl(interaction);
+                        api.getEventDispatcher().dispatchUserContextMenuCommandEvent(
+                                server,
+                                server,
+                                interaction.getChannel().orElse(null),
+                                interaction.getUser(),
+                                userContextMenuCommandEvent);
+                        break;
+                    case MESSAGE:
+                        MessageContextMenuCommandEvent messageContextMenuCommandEvent =
+                                new MessageContextMenuCommandEventImpl(interaction);
+                        api.getEventDispatcher().dispatchMessageContextMenuCommandEvent(
+                                server,
+                                interaction.asMessageContextMenuInteraction().orElseThrow(AssertionError::new)
+                                        .getTarget().getId(),
+                                server,
+                                interaction.getChannel().orElse(null),
+                                interaction.getUser(),
+                                messageContextMenuCommandEvent);
+                        break;
+                    default:
+                        logger.info("Got application command interaction of unknown type <{}>. "
+                                + "Please contact the developer!", applicationCommandTypeId);
+                        return;
+                }
 
-                    break;
-                case MESSAGE_COMPONENT:
-                    MessageComponentCreateEvent messageComponentCreateEvent =
-                            new MessageComponentCreateEventImpl(interaction);
-                    long messageId = messageComponentCreateEvent.getMessageComponentInteraction().getMessage().getId();
-                    api.getEventDispatcher().dispatchMessageComponentCreateEvent(
+                break;
+            case MESSAGE_COMPONENT:
+                MessageComponentCreateEvent messageComponentCreateEvent =
+                        new MessageComponentCreateEventImpl(interaction);
+                long messageId = messageComponentCreateEvent.getMessageComponentInteraction().getMessage().getId();
+                api.getEventDispatcher().dispatchMessageComponentCreateEvent(
+                        server == null ? api : server,
+                        messageId,
+                        server,
+                        interaction.getChannel().orElse(null),
+                        interaction.getUser(),
+                        messageComponentCreateEvent);
+
+                if (componentType == ComponentType.BUTTON) {
+                    ButtonClickEvent buttonClickEvent = new ButtonClickEventImpl(interaction);
+                    api.getEventDispatcher().dispatchButtonClickEvent(
                             server == null ? api : server,
                             messageId,
                             server,
                             interaction.getChannel().orElse(null),
                             interaction.getUser(),
-                            messageComponentCreateEvent);
-
-                    if (componentType == ComponentType.BUTTON) {
-                        ButtonClickEvent buttonClickEvent = new ButtonClickEventImpl(interaction);
-                        api.getEventDispatcher().dispatchButtonClickEvent(
-                                server == null ? api : server,
-                                messageId,
-                                server,
-                                interaction.getChannel().orElse(null),
-                                interaction.getUser(),
-                                buttonClickEvent);
-                    } else if (componentType.isSelectMenuType()) {
-                        SelectMenuChooseEvent selectMenuChooseEvent = new SelectMenuChooseEventImpl(interaction);
-                        api.getEventDispatcher().dispatchSelectMenuChooseEvent(
-                                server == null ? api : server,
-                                messageId,
-                                server,
-                                interaction.getChannel().orElse(null),
-                                interaction.getUser(),
-                                selectMenuChooseEvent);
-                    }
-                    break;
-                case APPLICATION_COMMAND_AUTOCOMPLETE:
-                    AutocompleteCreateEvent autocompleteCreateEvent =
-                            new AutocompleteCreateEventImpl(interaction);
-                    api.getEventDispatcher().dispatchAutocompleteCreateEvent(
+                            buttonClickEvent);
+                } else if (componentType.isSelectMenuType()) {
+                    SelectMenuChooseEvent selectMenuChooseEvent = new SelectMenuChooseEventImpl(interaction);
+                    api.getEventDispatcher().dispatchSelectMenuChooseEvent(
                             server == null ? api : server,
+                            messageId,
                             server,
                             interaction.getChannel().orElse(null),
                             interaction.getUser(),
-                            autocompleteCreateEvent);
-                    break;
-                case MODAL_SUBMIT:
-                    ModalSubmitEvent modalSubmitEvent = new ModalSubmitEventImpl(interaction);
-                    api.getEventDispatcher().dispatchModalSubmitEvent(
-                            server == null ? api : server,
-                            server,
-                            interaction.getChannel().orElse(null),
-                            interaction.getUser(),
-                            modalSubmitEvent);
-                    break;
-                default:
-                    break;
-            }
-        } finally {
-            lock.unlock();
+                            selectMenuChooseEvent);
+                }
+                break;
+            case APPLICATION_COMMAND_AUTOCOMPLETE:
+                AutocompleteCreateEvent autocompleteCreateEvent =
+                        new AutocompleteCreateEventImpl(interaction);
+                api.getEventDispatcher().dispatchAutocompleteCreateEvent(
+                        server == null ? api : server,
+                        server,
+                        interaction.getChannel().orElse(null),
+                        interaction.getUser(),
+                        autocompleteCreateEvent);
+                break;
+            case MODAL_SUBMIT:
+                ModalSubmitEvent modalSubmitEvent = new ModalSubmitEventImpl(interaction);
+                api.getEventDispatcher().dispatchModalSubmitEvent(
+                        server == null ? api : server,
+                        server,
+                        interaction.getChannel().orElse(null),
+                        interaction.getUser(),
+                        modalSubmitEvent);
+                break;
+            default:
+                break;
         }
     }
 
